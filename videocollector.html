@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>海外原声视频采集台</title>
 <style>
 :root{
@@ -39,7 +39,7 @@ button{font-family:inherit;cursor:pointer}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(59,124,255,.5)}70%{box-shadow:0 0 0 7px rgba(59,124,255,0)}100%{box-shadow:0 0 0 0 rgba(59,124,255,0)}}
 
 /* ===== 主体：移动端为面板切换，桌面端为三栏 ===== */
-.main{display:flex;height:calc(100vh - 52px - 56px);position:relative;background:var(--bg)}
+.main{display:flex;height:calc(100vh - 52px - 56px);height:calc(100dvh - 52px - 56px);position:relative;background:var(--bg)}
 .col{display:none;flex-direction:column;position:absolute;inset:0;overflow:hidden;background:var(--bg)}
 .col.active{display:flex}
 .col-left{background:var(--card)}
@@ -189,7 +189,7 @@ select{-webkit-appearance:none;appearance:none;
 
 /* ===== 桌面端：三栏布局 ===== */
 @media (min-width: 920px) {
-  .main{height:calc(100vh - 52px);position:static}
+  .main{height:calc(100vh - 52px);height:calc(100dvh - 52px);position:static}
   .col{position:static;display:flex !important}
   .col-left{width:300px;flex-shrink:0;border-right:1px solid var(--line);overflow:hidden}
   .col-center{flex:1;min-width:0}
