@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>海外原声视频采集台</title>
+<style>
+:root{
+  --bg:#f4f6fa; --card:#ffffff; --card2:#f7f9fc; --line:#e6e9ef;
+  --txt:#1f2733; --sub:#707a8a; --muted:#97a3b6;
+  --accent:#3b7df6; --accent2:#8b5cf6;
+  --green:#2bb673; --blue:#3b7df6; --orange:#f5a623; --red:#ef5b5b;
+  --tk:#06b6d4; --yt:#ff3366;
+  --hover:#eef2f9; --shadow:0 1px 2px rgba(16,24,40,.04),0 4px 12px rgba(16,24,40,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:13.5px;line-height:1.55;height:100%;overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+
+/* ===== 顶栏（移动端更紧凑） ===== */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 14px;border-bottom:1px solid var(--line);background:var(--card);height:52px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.brand h1{font-size:15px;font-weight:700;white-space:nowrap}
+.brand .en{font-size:10px;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.status-pill{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;
+  font-size:11px;font-weight:600;border:1px solid var(--line);background:var(--bg);white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.idle{background:var(--muted)}
+.dot.collecting{background:var(--blue);animation:pulse 1.2s infinite}
+.dot.done{background:var(--green)}
+.dot.waiting{background:var(--orange);animation:pulse 1.2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(59,124,255,.5)}70%{box-shadow:0 0 0 7px rgba(59,124,255,0)}100%{box-shadow:0 0 0 0 rgba(59,124,255,0)}}
+
+/* ===== 主体：移动端为面板切换，桌面端为三栏 ===== */
+.main{display:flex;height:calc(100vh - 52px - 56px);position:relative;background:var(--bg)}
+.col{display:none;flex-direction:column;position:absolute;inset:0;overflow:hidden;background:var(--bg)}
+.col.active{display:flex}
+.col-left{background:var(--card)}
+.col-center{background:var(--bg)}
+.col-right{background:var(--card)}
+
+/* 移动端底部标签栏 */
+.mobile-tabs{position:fixed;bottom:0;left:0;right:0;height:56px;background:#fff;border-top:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-around;z-index:40;padding-bottom:env(safe-area-inset-bottom,0)}
+.mobile-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  height:100%;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:500;transition:.15s}
+.mobile-tab .ic{font-size:18px;line-height:1}
+.mobile-tab.active{color:var(--accent);background:rgba(59,124,255,.06)}
+
+/* ===== 公共：区块 / 表单 ===== */
+.sec{padding:14px 16px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:none}
+.sec-title{font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:700;
+  letter-spacing:.6px;display:flex;align-items:center;gap:6px;text-transform:uppercase}
+.sec-title .step{width:18px;height:18px;border-radius:50%;background:var(--accent);
+  color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.sec-title .side-action{margin-left:auto;font-weight:500;font-size:11px;color:var(--accent);cursor:pointer;text-transform:none}
+
+label{display:block;font-size:12px;color:var(--sub);margin-bottom:5px}
+input[type=text],input[type=number],input[type=datetime-local],select,textarea{
+  width:100%;background:#fff;border:1px solid var(--line);color:var(--txt);
+  border-radius:8px;padding:10px 12px;font-size:14px;outline:none;transition:.15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select{-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2397a3b6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat:no-repeat;background-position:right 12px center;background-size:14px;padding-right:34px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-row{display:flex;gap:8px}
+.btn{flex:1;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;color:#fff;transition:.15s}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-go{background:linear-gradient(135deg,#34d399,#2bb673)}
+.btn-go:hover:not(:disabled){filter:brightness(1.05)}
+.btn-pause{background:linear-gradient(135deg,#fbbf24,#f5a623)}
+.btn-stop{background:linear-gradient(135deg,#f87171,#ef5b5b)}
+.btn-ghost{background:#fff;color:var(--sub);border:1px solid var(--line)}
+.btn-ghost:hover{color:var(--txt);border-color:var(--sub)}
+
+/* 主题 chips */
+.theme-grid{display:flex;flex-wrap:wrap;gap:7px}
+.theme-chip{font-size:12px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+  color:var(--sub);cursor:pointer;transition:.12s;user-select:none;display:flex;align-items:center;gap:5px;background:#fff}
+.theme-chip.on{border-color:var(--accent);color:var(--accent);background:rgba(59,124,255,.1)}
+.theme-chip .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.theme-chip.on .dot{background:var(--accent)}
+.theme-chip.new{animation:flash 1s ease}
+@keyframes flash{0%{box-shadow:0 0 0 3px rgba(245,158,66,.45)}100%{box-shadow:none}}
+
+/* 文件夹树 */
+.tree{font-size:13px}
+.tree-item{padding:6px 8px;cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:.1s;color:var(--sub);border-radius:6px}
+.tree-item:hover{color:var(--txt);background:var(--hover)}
+.tree-item .ic{font-size:14px;width:20px;text-align:center;flex-shrink:0}
+.tree-item.root{font-weight:700;color:var(--txt)}
+.tree-item.platform{margin-left:12px;font-weight:600}
+.tree-item.theme{margin-left:26px}
+.tree-item .cnt{font-size:11px;color:var(--muted);margin-left:auto}
+.tree-item.selected{color:var(--accent);background:rgba(59,124,255,.08)}
+.tree-empty{color:var(--muted);text-align:center;padding:20px;font-size:13px}
+
+/* ===== 中栏：搜索结果 ===== */
+.toolbar{display:flex;align-items:center;gap:12px;padding:12px 16px;
+  border-bottom:1px solid var(--line);background:var(--card);flex-wrap:wrap;flex-shrink:0}
+.toolbar .info{font-size:13px;color:var(--sub);font-weight:600}
+.toolbar .info b{color:var(--accent)}
+.prog-mini{display:flex;align-items:center;gap:8px;font-size:12px}
+.prog-mini .bar{width:100px;height:5px;background:var(--line);border-radius:999px;overflow:hidden}
+.prog-mini .bar span{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .25s}
+.scroll{flex:1;overflow-y:auto;padding:14px 16px;background:var(--bg)}
+.cards{display:grid;grid-template-columns:1fr;gap:12px}
+.vcard{background:#fff;border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+.vcard:hover{border-color:var(--accent)}
+.vcard.selected{border-color:var(--accent2);box-shadow:0 0 0 2px var(--accent2)}
+.thumb{position:relative;width:100%;aspect-ratio:16/9;background:var(--card2)}
+.thumb img{width:100%;height:100%;display:block;object-fit:cover}
+.plat-badge{position:absolute;top:8px;left:8px;font-size:10px;font-weight:700;
+  padding:3px 8px;border-radius:6px;color:#fff}
+.time-badge{position:absolute;top:8px;right:8px;font-size:10px;font-weight:700;
+  background:rgba(0,0,0,.62);color:#fff;padding:2px 6px;border-radius:4px}
+.new-badge{position:absolute;bottom:8px;left:8px;font-size:10px;font-weight:700;
+  background:var(--green);color:#fff;padding:2px 6px;border-radius:4px}
+.dur-badge{position:absolute;bottom:8px;right:8px;font-size:10px;
+  background:rgba(0,0,0,.65);color:#fff;padding:2px 6px;border-radius:4px}
+.vbody{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vtitle{font-size:15px;font-weight:700;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--txt)}
+.vtime{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.vevent{font-size:12.5px;color:var(--sub);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vlink{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);
+  background:#f7f9fc;border:1px solid var(--line);border-radius:6px;padding:6px 8px;margin-top:2px}
+.vlink .link-icon{flex-shrink:0}
+.vlink .link-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.vlink:active{background:var(--hover)}
+.empty-state{color:var(--muted);text-align:center;padding:60px 16px;font-size:14px;grid-column:1/-1}
+
+/* ===== 右栏：视频详情 ===== */
+.detail-head{display:flex;align-items:center;gap:8px;padding:13px 16px;
+  border-bottom:1px solid var(--line);flex-shrink:0;background:var(--card)}
+.detail-head .ic{font-size:15px}
+.detail-head h3{font-size:15px;font-weight:700}
+.detail-back{display:none;margin-right:auto;background:transparent;border:none;color:var(--accent);font-size:13px;font-weight:600}
+.detail-body{flex:1;overflow-y:auto;padding:14px 16px;background:var(--bg)}
+.detail-thumb{width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;margin-bottom:14px;background:var(--card2)}
+.detail-thumb img{width:100%;height:100%;display:block;object-fit:cover}
+.detail-field{margin-bottom:14px}
+.detail-field h4{font-size:11px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.detail-field p{font-size:13.5px;line-height:1.65;color:var(--sub)}
+.copy-link{display:flex;align-items:center;gap:8px;background:#fff;
+  border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+  font-size:12px;font-family:ui-monospace,monospace;word-break:break-all;
+  cursor:pointer;transition:.12s;color:var(--accent);position:relative}
+.copy-link:hover{background:var(--hover)}
+.copy-link .copy-icon{flex-shrink:0;font-size:14px;opacity:.6}
+.copy-link:hover .copy-icon{opacity:1}
+.copy-toast{position:absolute;top:-26px;left:50%;transform:translateX(-50%);
+  background:var(--green);color:#fff;padding:3px 10px;border-radius:5px;font-size:11px;
+  font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.detail-placeholder{color:var(--muted);text-align:center;padding:60px 20px;font-size:14px;line-height:1.8}
+
+/* ===== 弹窗 ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(20,30,60,.4);z-index:60;
+  display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:16px}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;max-width:440px;width:100%;box-shadow:var(--shadow)}
+.modal-box h3{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:8px;color:var(--txt)}
+.modal-box p{color:var(--sub);font-size:13px;line-height:1.65;margin-bottom:18px}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end}
+.modal-btns .btn{flex:0 0 auto;padding:8px 18px}
+.report-modal .modal-box{max-width:680px}
+.report-modal textarea{height:260px;font-family:ui-monospace,monospace;font-size:12px;
+  resize:vertical;width:100%;background:#fff;border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:12px}
+
+/* ===== Toast ===== */
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);
+  background:#fff;border:1px solid var(--line);color:var(--txt);padding:9px 18px;
+  border-radius:999px;font-size:13px;opacity:0;transition:.25s;z-index:80;pointer-events:none;box-shadow:var(--shadow)}
+.toast.show{opacity:1}
+
+/* ===== 桌面端：三栏布局 ===== */
+@media (min-width: 920px) {
+  .main{height:calc(100vh - 52px);position:static}
+  .col{position:static;display:flex !important}
+  .col-left{width:300px;flex-shrink:0;border-right:1px solid var(--line);overflow:hidden}
+  .col-center{flex:1;min-width:0}
+  .col-right{width:360px;flex-shrink:0;border-left:1px solid var(--line);overflow:hidden}
+  .mobile-tabs{display:none}
+  .toast{bottom:20px}
+  .cards{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .detail-back{display:none !important}
+}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">🎬</div>
+    <div><h1>海外原声视频采集台</h1><div class="en">Original-Voice Video Collector</div></div>
+  </div>
+  <div class="topbar-right">
+    <div class="status-pill">
+      <span class="dot idle" id="statusDot"></span><span id="statusLabel">空闲</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- ========== 左栏：搜索设置 + 归档 ========== -->
+  <aside class="col col-left" id="colLeft">
+    <div class="sec">
+      <div class="sec-title"><span class="step">1</span> 搜索设置</div>
+      <label>关键词（描述视频内容）</label>
+      <input type="text" id="keyword" placeholder="如：东京街头卖章鱼烧的大叔" value="东京街头卖章鱼烧的大叔">
+      <div class="row2" style="margin-top:10px">
+        <div><label>时间范围</label>
+          <select id="timeRange">
+            <option value="1h">过去 1 小时</option><option value="6h">过去 6 小时</option>
+            <option value="24h" selected>过去 24 小时</option><option value="3d">过去 3 天</option>
+            <option value="7d">过去 7 天</option><option value="custom">自定义</option>
+          </select>
+        </div>
+        <div><label>采集数量</label><input type="number" id="target" value="50" min="1" max="999"></div>
+      </div>
+      <div id="customRange" style="display:none;margin-top:10px">
+        <div class="row2">
+          <div><label>起始</label><input type="datetime-local" id="fromTime"></div>
+          <div><label>结束</label><input type="datetime-local" id="toTime"></div>
+        </div>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn btn-go" id="btnStart">▶ 开始采集</button>
+        <button class="btn btn-pause" id="btnPause" disabled>⏸</button>
+        <button class="btn btn-stop" id="btnStop" disabled>⏹</button>
+      </div>
+      <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-ghost" id="btnClear" style="flex:1">清空</button>
+        <button class="btn btn-ghost" id="btnExport" style="flex:1">导出报告</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title"><span class="step">2</span> 主题筛选 <span class="side-action" id="themeToggleAll">全选/取消</span></div>
+      <div class="theme-grid" id="themeChips"></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
+        主题由视频内容自动识别，搜到新主题会自动建类并提示。
+      </div>
+    </div>
+
+    <div class="sec" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="sec-title"><span class="step">3</span> 本地归档</div>
+      <div class="tree" id="treeView"><div class="tree-empty">采集后显示归档结构</div></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
+        单击节点 = 按平台/主题筛选；<b style="color:var(--accent)">双击节点</b> = 打开对应磁盘文件夹（演示环境会复制路径并提示）。
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========== 中栏：搜索结果 ========== -->
+  <section class="col col-center active" id="colCenter">
+    <div class="toolbar">
+      <span class="info" id="toolInfo">就绪</span>
+      <div class="prog-mini" id="progMini" style="display:none">
+        <span id="progLabel">0/50</span>
+        <div class="bar"><span id="progBar" style="width:0%"></span></div>
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto" id="rangeHint">范围：过去 24 小时</span>
+    </div>
+    <div class="scroll">
+      <div class="cards" id="cards">
+        <div class="empty-state" id="emptyTip">填写关键词后点击「开始采集」即可</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 右栏：视频详情 ========== -->
+  <aside class="col col-right" id="colRight">
+    <div class="detail-head">
+      <button class="detail-back" id="btnDetailBack">‹ 返回结果</button>
+      <span class="ic">🎞️</span><h3>视频详情</h3>
+    </div>
+    <div class="detail-body" id="detailBody">
+      <div class="detail-placeholder">点击任意视频卡片<br>此处显示封面、环境信息、视频主体、内容事件与视频链接</div>
+    </div>
+  </aside>
+</div>
+
+<!-- 移动端底部标签栏 -->
+<nav class="mobile-tabs" id="mobileTabs">
+  <button class="mobile-tab" data-target="colLeft"><span class="ic">🔍</span>搜索</button>
+  <button class="mobile-tab active" data-target="colCenter"><span class="ic">🎬</span>结果</button>
+  <button class="mobile-tab" data-target="colRight"><span class="ic">🎞️</span>详情</button>
+</nav>
+
+<!-- 扩展确认弹窗 -->
+<div class="modal-overlay" id="expandModal">
+  <div class="modal-box">
+    <h3>⏳ 时间范围内素材不足</h3>
+    <p id="expandMsg"></p>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" id="btnExpandNo">取消（停止）</button>
+      <button class="btn btn-go" id="btnExpandYes">同意扩展</button>
+    </div>
+  </div>
+</div>
+
+<!-- 报告弹窗 -->
+<div class="modal-overlay report-modal" id="reportModal">
+  <div class="modal-box">
+    <h3>📄 Markdown 报告</h3>
+    <textarea id="reportText" readonly></textarea>
+    <div class="modal-btns" style="margin-top:14px">
+      <button class="btn btn-ghost" id="btnReportClose">关闭</button>
+      <button class="btn btn-go" id="btnReportDownload">⬇ 下载 .md</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   海外原声视频采集台 v4（移动优先 / 桌面三栏自适应）
+   - 手机：底部标签切换「搜索 / 结果 / 详情」，结果页默认可见
+   - 桌面：保持左=搜索+归档 / 中=结果 / 右=详情
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const PLATFORMS = ['TikTok','YouTube'];
+const ROOT = 'D:\\素材库\\原声视频\\';
+
+/* ---------- 状态机 ---------- */
+const State = { IDLE:'idle', COLLECTING:'collecting', PAUSED:'paused', WAITING:'waiting', DONE:'done' };
+let state = State.IDLE;
+let videos = [], found = 0, target = 50, currentTier = '24h';
+let paused = false, stopped = false, nowBase = Date.now();
+let selectedVid = null;
+let activeTreeFilter = null;
+
+/* ---------- 时间显示与三年过滤 ---------- */
+const MAX_AGE_MS = 3 * 365 * 24 * 60 * 60 * 1000; // 三年前
+let includeOldVideos = false;
+function relativeTime(ts){
+  const diff = Date.now() - ts;
+  if(diff < 0) return '未来';
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(diff / 86400000);
+  const w = Math.floor(d / 7);
+  const mo = Math.floor(d / 30);
+  const y = Math.floor(d / 365);
+  if(m < 1) return '刚刚';
+  if(h < 1) return `${m}分钟前`;
+  if(h < 24) return `${h}小时前`;
+  if(d < 7) return `${d}天前`;
+  if(d < 30) return `${w}周前`;
+  if(d < 365) return `${mo}个月前`;
+  if(y < 3) return `${y}年前`;
+  return '三年前';
+}
+function isTooOld(ts){ return Date.now() - ts > MAX_AGE_MS; }
+
+/* ---------- 动态主题 ---------- */
+const COLOR_POOL = ['#3b7df6','#2bb673','#f5a623','#8b5cf6','#ef5b5b','#f76ab4',
+  '#06b6d4','#e8a87c','#98c379','#56b6c2','#d19a66','#c678dd','#ff6b81','#4dabf7'];
+let colorIdx = 0;
+const discoveredThemes = new Map();
+let selectedThemeFilters = new Set();
+let lastNewTheme = null;
+
+function registerTheme(name, notify){
+  if(!discoveredThemes.has(name)){
+    discoveredThemes.set(name, COLOR_POOL[colorIdx++ % COLOR_POOL.length]);
+    selectedThemeFilters.add(name);
+    if(notify){
+      toast('🆕 发现新主题：'+name);
+      log('🆕 自动创建新分类：'+name, 'warn');
+      buildThemeChips();
+    }
+  }
+  return discoveredThemes.get(name);
+}
+function themeColor(name){ return discoveredThemes.get(name) || '#8f9eb3'; }
+
+/* ---------- 时间档位 ---------- */
+const TIME_TIERS = [
+  {key:'1h',label:'过去 1 小时',sec:3600},
+  {key:'6h',label:'过去 6 小时',sec:21600},
+  {key:'24h',label:'过去 24 小时',sec:86400},
+  {key:'3d',label:'过去 3 天',sec:259200},
+  {key:'7d',label:'过去 7 天',sec:604800},
+  {key:'custom',label:'自定义(全部)',sec:Infinity}
+];
+function tierByKey(k){ return TIME_TIERS.find(t=>t.key===k); }
+function nextTierKey(k){ const i=TIME_TIERS.findIndex(t=>t.key===k); return (i>=0&&i<TIME_TIERS.length-1)?TIME_TIERS[i+1].key:null; }
+
+/* ---------- 关键词拆解 ---------- */
+const LEXICON = {
+  '东京':'Tokyo','大阪':'Osaka','首尔':'Seoul','曼谷':'Bangkok','纽约':'New York',
+  '巴黎':'Paris','伦敦':'London','上海':'Shanghai','北京':'Beijing','台北':'Taipei',
+  '街头':'street','夜市':'night market','市场':'market','路边':'roadside',
+  '章鱼烧':'takoyaki','拉面':'ramen','小吃':'snacks','美食':'food','烧烤':'bbq',
+  '咖啡':'coffee','水果':'fruit','寿司':'sushi','奶茶':'milk tea',
+  '大叔':'old man','阿姨':'auntie','小孩':'kid','女孩':'girl','男孩':'boy',
+  '猫':'cat','狗':'dog','熊猫':'panda','海豹':'seal','鸟':'bird','猴子':'monkey',
+  '下雨':'rain','雪':'snow','日落':'sunset','海边':'beach','山':'mountain','森林':'forest',
+  '跑步':'running','健身':'workout','瑜伽':'yoga','篮球':'basketball','足球':'soccer','滑板':'skateboard',
+  '穿搭':'outfit','时尚':'fashion','化妆':'makeup','街拍':'street style',
+  '手机':'smartphone','电脑':'laptop','耳机':'headphones','相机':'camera','无人机':'drone','游戏机':'console'
+};
+const THEME_HINTS = [
+  {re:/美食|吃|小吃|章鱼烧|拉面|烧烤|咖啡|水果|寿司|奶茶|夜市|市场|路边|路边摊/, t:'街头美食'},
+  {re:/猫|狗|熊猫|海豹|鸟|猴子|动物/, t:'动物世界'},
+  {re:/跑步|健身|瑜伽|篮球|足球|滑板|运动/, t:'运动健身'},
+  {re:/穿搭|时尚|化妆|街拍/, t:'时尚穿搭'},
+  {re:/手机|电脑|耳机|相机|无人机|游戏机|科技|产品/, t:'科技产品'},
+  {re:/雨|雪|日落|海边|山|森林|自然|风景|风光/, t:'自然风光'},
+  {re:/街头|街拍|城市|大叔|阿姨|小孩|女孩|男孩|路人/, t:'城市生活'}
+];
+function classifyTheme(text){
+  for(const h of THEME_HINTS){ if(h.re.test(text)) return h.t; }
+  return '城市生活';
+}
+function decomposeKeyword(text){
+  const keys = Object.keys(LEXICON).sort((a,b)=>b.length-a.length);
+  const enSet = new Set(), matched = [];
+  for(const k of keys){ if((text||'').includes(k)){ enSet.add(LEXICON[k]); matched.push(k); } }
+  let eng = [...enSet].join(' ');
+  if(!eng){ const e=(text||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').trim().split(/\s+/).filter(Boolean); eng=e.length?e.join(' '):'original video'; }
+  return { raw:text, tokens:matched, englishPhrase:eng,
+    primaryTheme:classifyTheme(text),
+    searchCombos:[eng, eng+' original sound', eng+' no music', eng+' real life ambient'] };
+}
+
+/* ---------- 内容生成 ---------- */
+function rng(a,b){ return Math.random()*(b-a)+a; }
+function ri(a,b){ return Math.floor(rng(a,b+1)); }
+function durationTag(s){ if(s<=15) return '15秒内'; if(s<=60) return '15-60秒'; return '60秒以上'; }
+
+const THING_T = ['章鱼烧','拉面','小吃','美食','咖啡','水果','寿司','奶茶','手机','电脑','耳机','相机','无人机','游戏机','穿搭'];
+const BEING_T = ['大叔','阿姨','小孩','女孩','男孩','猫','狗','熊猫','海豹','鸟','猴子','路人'];
+const LOC_T   = ['东京','大阪','首尔','曼谷','纽约','巴黎','伦敦','上海','北京','台北'];
+const BEING_DESC = {'大叔':'一位中年大叔','阿姨':'一位热情阿姨','小孩':'一个活泼小孩','女孩':'一位年轻女生','男孩':'一个男生',
+  '猫':'一只慵懒的橘猫','狗':'一只好奇的小狗','熊猫':'一只憨态可掬的熊猫','海豹':'一只圆滚滚的海豹','鸟':'一只小鸟','猴子':'一只调皮的猴子','路人':'一位路人'};
+const LIGHT = ['自然光','午后斜阳','阴天柔光','霓虹灯光','清晨薄雾','正午强光'];
+const SURROUND = ['人流适中、略有车声','背景是老式民居与招牌','临海，有海风声','店内空间狭小但温馨','开阔街角，偶有路人交谈','树荫下，伴虫鸣鸟叫'];
+const ACT = ['低头忙着手里的活','慢条斯理地翻动食材','抬头看了眼镜头又继续','反复调整机位','和旁人简短交谈','专注地操作设备'];
+const STATE = ['神情松弛自然','额头上泛着汗光','嘴角带着笑意','略显疲惫但很投入','动作熟练利落','状态放松'];
+const DIALOG = ['无对话，仅有环境音','有零星几句闲聊，大意是询问价格','偶有自言自语，未形成完整对话','与顾客简短交流，内容关于做法','无字幕对话，背景人声模糊'];
+
+function focusOf(kw){
+  let thing = kw.tokens.find(t=>THING_T.includes(t)) || (kw.primaryTheme==='街头美食'?'章鱼烧':(kw.tokens[0]||'场景'));
+  let being = kw.tokens.find(t=>BEING_T.includes(t)) || (kw.primaryTheme==='动物世界'?'小猫':'路人');
+  let loc   = kw.tokens.find(t=>LOC_T.includes(t)) || '街头';
+  return { thing, being, loc, beingDesc: BEING_DESC[being]||'一位路人' };
+}
+const TITLE_TPL = [
+  '{loc}{thing}现做现卖，热气腾腾',
+  '藏在{loc}巷子里的{thing}神店',
+  '{being}的{thing}手艺，一口入魂',
+  '夜市{thing}实录，烟火气拉满',
+  '{loc}{thing}第一视角，香味隔着屏幕',
+  '{loc}街头路人随手拍，真实生活感',
+  '{loc}街景原声，安静的背景音'
+];
+
+function makeThumb(platform, theme){
+  const c1 = themeColor(theme), c2 = platform==='TikTok' ? '#0b1220' : '#1a0008', glyph = platform==='TikTok' ? '♪' : '▶';
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180">'
+    + '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">'
+    + '<stop offset="0" stop-color="'+c1+'" stop-opacity="0.9"/>'
+    + '<stop offset="1" stop-color="'+c2+'" stop-opacity="0.95"/></linearGradient></defs>'
+    + '<rect width="320" height="180" fill="url(#g)"/>'
+    + '<circle cx="160" cy="90" r="26" fill="rgba(0,0,0,0.32)"/>'
+    + '<text x="160" y="98" font-size="24" fill="#fff" text-anchor="middle" font-family="sans-serif">'+glyph+'</text>'
+    + '</svg>';
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+let _uid = 0;
+function generateVideo(kw, pub, titleIdx){
+  const platform = PLATFORMS[ri(0,1)];
+  const orientation = platform==='TikTok' ? 'portrait' : 'landscape';
+  const dur = ri(8,95), dtag = durationTag(dur);
+  const f = focusOf(kw);
+  const tpl = titleIdx!=null ? TITLE_TPL[titleIdx] : TITLE_TPL[ri(0, TITLE_TPL.length-1)];
+  const title = tpl.replace(/{loc}/g, f.loc).replace(/{thing}/g, f.thing).replace(/{being}/g, f.being);
+  const theme = classifyTheme(title);
+  registerTheme(theme, true);
+  const light = LIGHT[ri(0,5)], surround = SURROUND[ri(0,5)], act = ACT[ri(0,5)], st = STATE[ri(0,5)], dlg = DIALOG[ri(0,4)];
+  const env = '地点位于' + f.loc + '附近，' + light + '充足，' + surround;
+  const subj = '主体为' + f.beingDesc + '，' + act + '，' + st;
+  const evt = '记录了' + f.being + '的一段日常，' + dlg + '，情节平缓无强烈冲突。';
+  const fname = 'v' + String(++_uid).padStart(4,'0') + '_' + theme + '.mp4';
+  const isNew = Math.random() < 0.86;
+  let videoUrl;
+  if(platform === 'TikTok'){
+    videoUrl = 'https://www.tiktok.com/@user/video/' + (7000000000000000000n + BigInt(_uid)).toString();
+  } else {
+    videoUrl = 'https://www.youtube.com/watch?v=' + (7000000000000 + _uid).toString(36);
+  }
+  return {
+    id:_uid, platform:platform, orientation:orientation, title:title, publishTime:pub, durationSec:dur, durationTag:dtag,
+    theme:theme, hasBGM:false, isNew:isNew, localPath:ROOT + platform + '\\' + theme + '\\' + fname,
+    description:{ env:env, subject:subj, event:evt }, thumb:makeThumb(platform, theme), videoUrl:videoUrl
+  };
+}
+
+function capacityFor(tk){
+  const base = {'1h':9,'6h':24,'24h':32,'3d':170,'7d':380,'custom':1400}[tk]||30;
+  return Math.round(base*rng(.8,1.25));
+}
+
+/* ---------- Toast / 状态灯 ---------- */
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2400);
+}
+function setStatus(s){
+  if(s) state=s;
+  const m={idle:{c:'idle',t:'空闲'},collecting:{c:'collecting',t:'采集中'},paused:{c:'idle',t:'已暂停'},waiting:{c:'waiting',t:'等待确认'},done:{c:'done',t:'已完成'}};
+  const v=m[state]; $('statusDot').className='dot '+v.c; $('statusLabel').textContent=v.t;
+}
+function log(msg, type){
+  console.log('['+(type||'info')+'] '+msg);
+}
+
+/* ---------- 主题 chips ---------- */
+function buildThemeChips(){
+  const wrap=$('themeChips'); wrap.innerHTML='';
+  for(const [name,color] of discoveredThemes){
+    const chip=document.createElement('span');
+    const isNew = name===lastNewTheme;
+    chip.className='theme-chip'+(selectedThemeFilters.has(name)?' on':'')+(isNew?' new':'');
+    chip.innerHTML=`<span class="dot" style="background:${color}"></span>${name}`;
+    chip.addEventListener('click',()=>{
+      if(selectedThemeFilters.has(name)){ selectedThemeFilters.delete(name); chip.classList.remove('on'); }
+      else{ selectedThemeFilters.add(name); chip.classList.add('on'); }
+      renderCards(); renderTree(); saveFilters();
+    });
+    wrap.appendChild(chip);
+  }
+}
+$('themeToggleAll').addEventListener('click',()=>{
+  if(selectedThemeFilters.size===discoveredThemes.size){ selectedThemeFilters.clear(); }
+  else{ for(const k of discoveredThemes.keys()) selectedThemeFilters.add(k); }
+  buildThemeChips(); renderCards(); renderTree(); saveFilters();
+});
+
+/* ---------- 文件夹树 ---------- */
+function renderTree(){
+  const tree=$('treeView');
+  const filtered = videos.filter(v=>selectedThemeFilters.has(v.theme));
+  if(!filtered.length){ tree.innerHTML='<div class="tree-empty">暂无归档数据</div>'; return; }
+  const root={name:'原声视频',count:filtered.length,children:{}};
+  for(const v of filtered){
+    if(!root.children[v.platform]) root.children[v.platform]={name:v.platform,count:0,children:{}};
+    root.children[v.platform].count++;
+    if(!root.children[v.platform].children[v.theme]) root.children[v.platform].children[v.theme]={name:v.theme,count:0};
+    root.children[v.platform].children[v.theme].count++;
+  }
+  let html=`<div class="tree-item root${!activeTreeFilter?' selected':''}" data-node="root"><span class="ic">📂</span>原声视频<span class="cnt">${root.count}</span></div>`;
+  for(const [pk,pn] of Object.entries(root.children)){
+    const pSel = activeTreeFilter && activeTreeFilter.platform===pk && !activeTreeFilter.theme;
+    html+=`<div class="tree-item platform${pSel?' selected':''}" data-node="platform:${pk}"><span class="ic">📁</span>${pk}<span class="cnt">${pn.count}</span></div>`;
+    for(const [tk,tn] of Object.entries(pn.children)){
+      const tSel = activeTreeFilter && activeTreeFilter.platform===pk && activeTreeFilter.theme===tk;
+      html+=`<div class="tree-item theme${tSel?' selected':''}" data-node="theme:${pk}:${tk}"><span class="ic">📄</span>${tk}<span class="cnt">${tn.count}</span></div>`;
+    }
+  }
+  tree.innerHTML=html;
+  tree.querySelectorAll('.tree-item').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const node=el.dataset.node;
+      if(node==='root') activeTreeFilter=null;
+      else if(node.startsWith('platform:')) activeTreeFilter={platform:node.slice(9),theme:null};
+      else if(node.startsWith('theme:')){ const [,p,t]=node.split(':'); activeTreeFilter={platform:p,theme:t}; }
+      renderTree(); renderCards(); saveFilters();
+    });
+    el.addEventListener('dblclick',()=>openFolder(treeNodePath(el.dataset.node)));
+  });
+}
+
+function truncate(str, n){ return str && str.length > n ? str.slice(0, n) + '…' : (str || ''); }
+
+/* ---------- 卡片（中栏） ---------- */
+function renderCards(){
+  const el=$('emptyTip'); if(el) el.remove();
+  let list = videos.filter(v=>selectedThemeFilters.has(v.theme));
+  if(activeTreeFilter){
+    if(activeTreeFilter.platform) list=list.filter(v=>v.platform===activeTreeFilter.platform);
+    if(activeTreeFilter.theme) list=list.filter(v=>v.theme===activeTreeFilter.theme);
+  }
+  // 默认过滤掉三年前的视频
+  const hiddenOld = !includeOldVideos ? list.filter(v => isTooOld(v.publishTime)) : [];
+  if(!includeOldVideos) list = list.filter(v => !isTooOld(v.publishTime));
+  list=[...list].sort((a,b)=>b.publishTime-a.publishTime);
+  const grid=$('cards');
+  if(!list.length){
+    if(hiddenOld.length){
+      grid.innerHTML=`<div class="empty-state">当前筛选下，三年内没有匹配视频<br><button class="btn btn-ghost" id="btnShowOld" style="margin-top:10px;padding:7px 14px;font-size:12px">显示更早的 ${hiddenOld.length} 条视频</button></div>`;
+      $('btnShowOld').addEventListener('click',()=>{ includeOldVideos=true; renderCards(); saveFilters(); });
+    }else{
+      grid.innerHTML='<div class="empty-state">暂无匹配结果</div>';
+    }
+    return;
+  }
+  grid.innerHTML='';
+  for(const v of list){
+    const card=document.createElement('div'); card.className='vcard';
+    if(selectedVid && selectedVid.id===v.id) card.classList.add('selected');
+    card.innerHTML=`
+      <div class="thumb" style="aspect-ratio:${v.orientation==='portrait'?'4/5':'16/9'}">
+        <img src="${v.thumb}" alt="thumb">
+        <span class="plat-badge" style="background:${v.platform==='TikTok'?'var(--tk)':'var(--yt)'}">${v.platform}</span>
+        <span class="time-badge">${relativeTime(v.publishTime)}</span>
+        ${v.isNew?'<span class="new-badge">新</span>':''}
+        <span class="dur-badge">${v.durationSec}s</span>
+      </div>
+      <div class="vbody">
+        <div class="vtitle">${v.title}</div>
+        <div class="vevent">${truncate(v.description.event, 90)}</div>
+        <div class="vlink" data-url="${v.videoUrl}">
+          <span class="link-icon">🔗</span>
+          <span class="link-text">${truncate(v.videoUrl, 42)}</span>
+        </div>
+      </div>`;
+    card.addEventListener('click',()=>showDetail(v));
+    card.querySelector('.vlink').addEventListener('click',(e)=>{
+      e.stopPropagation();
+      copyText(v.videoUrl, null);
+    });
+    grid.appendChild(card);
+  }
+}
+
+/* ---------- 右栏详情 ---------- */
+function showDetail(v, autoSwitchTab=true){
+  selectedVid = v;
+  $('detailBody').innerHTML = `
+    <div class="detail-thumb"><img src="${v.thumb}" alt="thumb"></div>
+    <div class="detail-field"><h4>📌 平台 · 发布时间</h4><p>${v.platform} · ${relativeTime(v.publishTime)} · ${v.durationSec}秒 · ${v.durationTag}</p></div>
+    <div class="detail-field"><h4>🏷️ 主题 · 标签</h4><p>${v.theme} ${v.isNew?'· <span style="color:var(--green)">新视频</span>':''}</p></div>
+    <div class="detail-field"><h4>🌍 环境信息</h4><p>${v.description.env}</p></div>
+    <div class="detail-field"><h4>🎯 视频主体</h4><p>${v.description.subject}</p></div>
+    <div class="detail-field"><h4>🎬 内容事件</h4><p>${v.description.event}</p></div>
+    <div class="detail-field"><h4>🔗 视频链接（点击复制）</h4>
+      <div class="copy-link" data-url="${v.videoUrl}"><span class="copy-icon">📋</span><span>${v.videoUrl}</span><span class="copy-toast">已复制!</span></div>
+    </div>
+    <div class="detail-field"><h4>📁 预计保存路径（尚未下载 · 单击复制）</h4>
+      <div class="copy-link" data-url="${v.localPath}"><span class="copy-icon">📋</span><span>${v.localPath}</span><span class="copy-toast">已复制!</span></div>
+    </div>`;
+  $('detailBody').querySelectorAll('.copy-link').forEach(el=>{
+    el.addEventListener('click',()=>copyText(el.dataset.url, el.querySelector('.copy-toast')));
+    el.addEventListener('dblclick',e=>{ e.stopPropagation(); openFolder(el.dataset.url); });
+  });
+  document.querySelectorAll('.vcard').forEach(c=>c.classList.remove('selected'));
+  renderCards();
+  // 移动端点卡片自动跳详情页；初始化加载时不跳转，保留在结果页
+  if(autoSwitchTab && window.innerWidth < 920) switchMobileTab('colRight');
+}
+function copyText(text, toastEl){
+  navigator.clipboard?.writeText(text).catch(()=>{});
+  if(toastEl){ toastEl.style.opacity='1'; setTimeout(()=>toastEl.style.opacity='0',1400); }
+  toast('已复制');
+}
+
+/* ---------- 双击打开磁盘文件夹 ---------- */
+function treeNodePath(node){
+  if(node==='root') return ROOT;
+  if(node.startsWith('platform:')) return ROOT + node.slice(9) + '\\';
+  if(node.startsWith('theme:')){ const [,p,t]=node.split(':'); return ROOT + p + '\\' + t + '\\'; }
+  return ROOT;
+}
+function openFolder(path){
+  navigator.clipboard?.writeText(path).catch(()=>{});
+  const url = 'file:///' + path.replace(/\\/g,'/').replace(/^([A-Za-z]):/,'$1:');
+  let opened=false;
+  try{
+    const w = window.open(url, '_blank');
+    opened = !!w;
+  }catch(e){ opened=false; }
+  if(opened){
+    toast('已打开文件夹：'+path);
+  }else{
+    toast('路径已复制 → '+path+'（演示环境无法直开磁盘）');
+  }
+}
+
+/* ---------- 扩展弹窗 ---------- */
+function askExpand(foundN, nextLabel, curLabel){
+  return new Promise(resolve=>{
+    $('expandMsg').innerHTML=`当前时间范围（<b>${curLabel}</b>）内仅找到 <b style="color:var(--orange)">${foundN}</b> 条符合条件的原声视频，未达到目标 <b>${target}</b> 条。<br><br>是否将时间范围扩展至下一档（<b>${nextLabel}</b>）继续补充采集？`;
+    $('expandModal').classList.add('show'); setStatus(State.WAITING);
+    const yes=()=>{$('expandModal').classList.remove('show');clean();resolve(true);};
+    const no =()=>{$('expandModal').classList.remove('show');clean();resolve(false);};
+    function clean(){$('btnExpandYes').onclick=null;$('btnExpandNo').onclick=null;}
+    $('btnExpandYes').onclick=yes; $('btnExpandNo').onclick=no;
+  });
+}
+
+/* ---------- 采集主流程 ---------- */
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function stepDelay(){ return ri(90,200); }
+function updateProgress(){
+  $('progLabel').textContent=found+'/'+target;
+  $('progBar').style.width=Math.min(100,found/target*100)+'%';
+  $('progMini').style.display='flex';
+  $('toolInfo').innerHTML='已搜索到 <b>'+found+'</b> 条原声视频';
+}
+function updateRangeLabel(){ $('rangeHint').textContent='范围：'+tierByKey(currentTier).label; }
+async function waitWhilePaused(){ while(paused&&!stopped) await sleep(200); }
+function simulateScrutiny(){
+  const n=ri(0,2);
+  const reas=['含背景音乐(BGM)，已剔除','画面与关键词描述不符，已剔除','疑似搬运/非第一手，已剔除','时长过短无有效内容，已剔除'];
+  for(let i=0;i<n;i++) log('淘汰: '+reas[ri(0,3)]);
+}
+
+async function collect(){
+  stopped=false; paused=false; nowBase=Date.now();
+  const kw=decomposeKeyword($('keyword').value);
+  target=parseInt($('target').value)||50;
+  currentTier=$('timeRange').value;
+  updateRangeLabel();
+  saveFilters(); // 记录本次采集的筛选条件
+  videos=[]; found=0; selectedVid=null;
+  $('cards').innerHTML='<div class="empty-state">采集中…</div>';
+  $('detailBody').innerHTML='<div class="detail-placeholder">采集中…</div>';
+  updateProgress(); renderTree(); buildThemeChips(); $('btnExport').disabled=true;
+  setStatus(State.COLLECTING);
+  $('btnStart').disabled=true; $('btnPause').disabled=false; $('btnStop').disabled=false;
+  $('btnPause').textContent='⏸';
+  // 开始采集时切到结果页，让用户看到过程
+  if(window.innerWidth < 920) switchMobileTab('colCenter');
+  let tier=currentTier;
+  while(!stopped){
+    await waitWhilePaused(); if(stopped) break;
+    const cap=capacityFor(tier), tLabel=tierByKey(tier).label;
+    while(found<target && found<cap && !stopped){
+      await waitWhilePaused(); if(stopped) break;
+      simulateScrutiny(); await sleep(stepDelay());
+      const v=generateVideo(kw, nowBase - found*ri(60000,3600000));
+      videos.push(v); found++;
+      if(!selectedVid) showDetail(v, false);
+      renderCards(); renderTree(); updateProgress();
+    }
+    if(stopped) break;
+    if(found>=target){ finish(); return; }
+    const next=nextTierKey(tier);
+    if(!next){ finish(); return; }
+    const ok=await askExpand(found, tierByKey(next).label, tLabel);
+    if(!ok){ finish(); return; }
+    tier=next; updateRangeLabel();
+  }
+  finish();
+}
+function finish(){
+  setStatus(State.DONE);
+  $('btnStart').disabled=false; $('btnPause').disabled=true; $('btnStop').disabled=true;
+  $('btnExport').disabled=false;
+  $('toolInfo').innerHTML='✅ 采集完成，共 <b>'+found+'</b> 条';
+  toast('采集完成：'+found+' 条原声视频');
+  saveVideos();
+}
+
+/* ---------- Markdown 报告 ---------- */
+function buildMarkdown(){
+  const total=videos.length;
+  const tc={},pc={},dc={}; let nn=0;
+  for(const v of videos){ tc[v.theme]=(tc[v.theme]||0)+1; pc[v.platform]=(pc[v.platform]||0)+1; dc[v.durationTag]=(dc[v.durationTag]||0)+1; if(v.isNew) nn++; }
+  const fmt=ts=>new Date(ts).toLocaleString('zh-CN',{hour12:false});
+  let md=`# 海外原声视频采集报告\n\n- **采集时间**：${new Date().toLocaleString('zh-CN',{hour12:false})}\n- **关键词**：${$('keyword').value}\n- **时间范围**：${tierByKey(currentTier).label}\n- **采集总数**：${total} 条\n- **新视频占比**：${total?Math.round(nn/total*100):0}%（${nn}/${total}）\n- **归档根目录**：\`${ROOT}\`\n\n## 分类统计\n`;
+  for(const [k,v] of Object.entries(tc).sort((a,b)=>b[1]-a[1])) md+=`- ${k}：${v} 条（${total?Math.round(v/total*100):0}%）\n`;
+  md+=`\n## 平台分布\n`;
+  for(const [k,v] of Object.entries(pc)) md+=`- ${k}：${v} 条\n`;
+  md+=`\n## 视频清单\n\n| # | 标题 | 平台 | 发布时间 | 时长 | 主题 | 新 | 链接 | 本地路径 |\n|---|---|---|---|---|---|---|---|---|\n`;
+  const s=[...videos].sort((a,b)=>b.publishTime-a.publishTime);
+  s.forEach((v,i)=>{ md+=`| ${i+1} | ${v.title.replace(/\|/g,'/')} | ${v.platform} | ${fmt(v.publishTime)} | ${v.durationSec}s | ${v.theme} | ${v.isNew?'新':'-'} | ${v.videoUrl} | ${v.localPath} |\n`; });
+  return md;
+}
+function showReport(){ $('reportText').value=buildMarkdown(); $('reportModal').classList.add('show'); }
+function downloadReport(){
+  const md=buildMarkdown(); const blob=new Blob([md],{type:'text/markdown;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`原声视频采集报告_${new Date().toISOString().slice(0,10)}.md`;
+  a.click(); URL.revokeObjectURL(a.href); toast('报告已下载');
+}
+
+/* ---------- 事件绑定 ---------- */
+$('timeRange').addEventListener('change',e=>{ $('customRange').style.display=e.target.value==='custom'?'block':'none'; saveFilters(); });
+$('keyword').addEventListener('input', saveFilters);
+$('target').addEventListener('input', saveFilters);
+$('fromTime').addEventListener('input', saveFilters);
+$('toTime').addEventListener('input', saveFilters);
+$('btnStart').addEventListener('click',()=>collect());
+$('btnPause').addEventListener('click',()=>{
+  if(state===State.COLLECTING){ paused=true; setStatus(State.PAUSED); $('btnPause').textContent='▶'; $('toolInfo').textContent='⏸ 已暂停'; }
+  else if(state===State.PAUSED){ paused=false; setStatus(State.COLLECTING); $('btnPause').textContent='⏸'; $('toolInfo').textContent='采集中…'; }
+});
+$('btnStop').addEventListener('click',()=>{ stopped=true; paused=false; $('toolInfo').textContent='⏹ 已停止'; });
+$('btnClear').addEventListener('click',()=>{
+  if(state===State.COLLECTING||state===State.PAUSED){ toast('请先停止采集'); return; }
+  videos=[]; found=0; selectedVid=null; activeTreeFilter=null; includeOldVideos=false;
+  discoveredThemes.clear(); selectedThemeFilters.clear(); colorIdx=0;
+  // 一键清空：重置所有筛选条件到默认
+  $('keyword').value=''; $('timeRange').value='24h'; $('target').value=50;
+  $('fromTime').value=''; $('toTime').value=''; $('customRange').style.display='none';
+  updateRangeLabel();
+  updateProgress(); $('progMini').style.display='none';
+  $('cards').innerHTML='<div class="empty-state">已清空，点击「开始采集」</div>';
+  $('detailBody').innerHTML='<div class="detail-placeholder">点击任意视频卡片<br>此处显示封面、环境信息、视频主体、内容事件与视频链接</div>';
+  renderTree(); buildThemeChips(); setStatus(State.IDLE); $('btnExport').disabled=true;
+  localStorage.removeItem('vc:videos'); localStorage.removeItem(FILTERS_KEY); localStorage.removeItem(TAB_KEY);
+  $('toolInfo').textContent='就绪'; toast('已清空');
+  if(window.innerWidth<920) switchMobileTab('colLeft');
+});
+$('btnExport').addEventListener('click',showReport);
+$('btnReportClose').addEventListener('click',()=>$('reportModal').classList.remove('show'));
+$('btnReportDownload').addEventListener('click',downloadReport);
+
+/* ---------- 移动端标签切换 ---------- */
+const MOBILE_TABS = document.querySelectorAll('.mobile-tab');
+const COLS = { colLeft:$('colLeft'), colCenter:$('colCenter'), colRight:$('colRight') };
+function switchMobileTab(targetId){
+  Object.values(COLS).forEach(c=>c.classList.remove('active'));
+  COLS[targetId].classList.add('active');
+  MOBILE_TABS.forEach(t=>t.classList.toggle('active', t.dataset.target===targetId));
+  // 返回结果页时隐藏详情返回按钮
+  if(targetId==='colCenter') $('btnDetailBack').style.display='none';
+  // 记住当前所在页，刷新不跳页
+  try{ localStorage.setItem(TAB_KEY, targetId); }catch(e){}
+}
+MOBILE_TABS.forEach(tab=>{
+  tab.addEventListener('click',()=>switchMobileTab(tab.dataset.target));
+});
+$('btnDetailBack').addEventListener('click',()=>switchMobileTab('colCenter'));
+
+/* ---------- 本地保存（视频 + 筛选条件 + 所在页） ---------- */
+const FILTERS_KEY = 'vc:filters';
+const TAB_KEY = 'vc:tab';
+function saveFilters(){
+  try{
+    localStorage.setItem(FILTERS_KEY, JSON.stringify({
+      keyword: $('keyword').value,
+      timeRange: $('timeRange').value,
+      target: $('target').value,
+      fromTime: $('fromTime').value,
+      toTime: $('toTime').value,
+      selectedThemes: [...selectedThemeFilters],
+      activeTreeFilter: activeTreeFilter,
+      includeOldVideos: includeOldVideos,
+      selectedVidId: selectedVid ? selectedVid.id : null
+    }));
+  }catch(e){}
+}
+function loadFilters(){
+  try{
+    const s = localStorage.getItem(FILTERS_KEY);
+    if(!s) return null;
+    return JSON.parse(s);
+  }catch(e){ return null; }
+}
+function saveVideos(){ try{ localStorage.setItem('vc:videos', JSON.stringify(videos)); }catch(e){} }
+function loadVideos(filters){
+  try{
+    const s=localStorage.getItem('vc:videos');
+    if(s){ 
+      videos=JSON.parse(s); 
+      found=videos.length; 
+      videos.forEach(v => registerTheme(v.theme, false)); // 恢复主题
+      // 恢复上一轮的「主题筛选」勾选
+      if(filters && filters.selectedThemes){
+        const valid = filters.selectedThemes.filter(t => discoveredThemes.has(t));
+        selectedThemeFilters = new Set(valid);
+        if(valid.length === 0) discoveredThemes.forEach(k => selectedThemeFilters.add(k)); // 全空时退回全选，避免空白
+      }
+      buildThemeChips(); 
+      const svId = filters && filters.selectedVidId;
+      selectedVid = (svId != null ? videos.find(v => v.id === svId) : videos[0]) || null;
+      renderCards(); 
+      renderTree();
+      $('toolInfo').innerHTML='已恢复 <b>'+found+'</b> 条原声视频（上次保存）';
+      setStatus(State.DONE);
+      if(selectedVid) showDetail(selectedVid, false);
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+/* ---------- 打开即载入示例 ---------- */
+function loadDemo(){
+  videos=[]; found=0; _uid=0;
+  const kw=decomposeKeyword($('keyword').value);
+  const N=14;
+  for(let i=0;i<N;i++){ let idx=null; if(i===3||i===9) idx=(i%2===0?5:6); const v=generateVideo(kw, Date.now()-i*ri(1800000,5400000), idx); videos.push(v); found++; }
+  selectedVid = videos[0];
+  buildThemeChips(); renderCards(); renderTree();
+  $('toolInfo').innerHTML='已搜索到 <b>'+found+'</b> 条原声视频（示例）';
+  setStatus(State.DONE);
+  if(selectedVid) showDetail(selectedVid, false);
+  toast('已载入示例数据，点击卡片查看详情');
+  saveVideos();
+}
+$('rangeHint').textContent='范围：'+tierByKey(currentTier).label;
+setStatus(State.IDLE);
+// 恢复上次的筛选条件与所在页，刷新不重置、不乱跳
+const savedFilters = loadFilters();
+if(savedFilters){
+  $('keyword').value = (savedFilters.keyword!=null) ? savedFilters.keyword : $('keyword').value;
+  $('timeRange').value = savedFilters.timeRange || '24h';
+  $('target').value = savedFilters.target || 50;
+  $('fromTime').value = savedFilters.fromTime || '';
+  $('toTime').value = savedFilters.toTime || '';
+  $('customRange').style.display = ($('timeRange').value==='custom') ? 'block' : 'none';
+  includeOldVideos = !!savedFilters.includeOldVideos;
+  activeTreeFilter = savedFilters.activeTreeFilter || null;
+  currentTier = $('timeRange').value;
+  updateRangeLabel();
+}
+if(!loadVideos(savedFilters)) loadDemo();
+// 移动端回到上次标签（搜索 / 结果 / 详情）；桌面端三栏恒显不受影响
+if(window.innerWidth < 920){
+  const savedTab = localStorage.getItem(TAB_KEY);
+  switchMobileTab(savedTab || 'colCenter');
+}
+</script>
+</body>
+</html>

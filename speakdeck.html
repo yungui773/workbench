@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpeakDeck · 卡片式英语口语工作台</title>
+  <meta name="description" content="卡片式英语口语学习工作台">
+  <meta name="theme-color" content="#3b7df6">
+  <!-- 禁止浏览器发送 Referer，避免 file:// 打开时百度/有道等 TTS 接口因 Referer 异常而返回空 -->
+  <meta name="referrer" content="no-referrer">
+  
+  <style>/* ============================================================
+ *  SpeakDeck · 样式表（已统一为工作台浅色清爽风格）
+ * ============================================================ */
+:root {
+  --bg: #f4f6fa;
+  --bg-soft: #eef2f9;
+  --card: #ffffff;
+  --ink: #1f2733;
+  --ink-soft: #707a8a;
+  --line: #e6e9ef;
+  --brand: #3b7df6;
+  --brand-soft: #eaf1ff;
+  --accent: #ff8a65;
+  --kw: #ff7a59;       /* 重点词高亮 */
+  --kw-bg: #fff0ea;
+  --good: #2bb673;
+  --warn: #f5a623;
+  --bad: #ef5b5b;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.05);
+  --radius: 14px;
+  font-size: 16px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { margin: 0 0 .4em; font-weight: 800; letter-spacing: .2px; }
+p { margin: .3em 0; }
+
+/* ---------- 顶部栏 ---------- */
+.audio-banner {
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px 16px; font-size: 13px; font-weight: 600;
+  background: #fff8e1; color: #b9801e; gap: 6px; flex-wrap: wrap;
+}
+.audio-banner.good { background: #e8f5e9; color: #2e7d32; }
+.audio-banner[hidden] { display: none; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 14px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 30;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand .logo { font-size: 30px; }
+.brand h1 { font-size: 22px; }
+.tagline { font-size: 12px; color: var(--ink-soft); margin: 0; }
+.topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.streak {
+  background: #fff3e6; color: #c9701a; font-weight: 700;
+  padding: 6px 12px; border-radius: 999px; font-size: 14px;
+}
+
+/* ---------- 移动端底部导航 ---------- */
+.mobnav {
+  display: none;
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: #fff; border-top: 1px solid var(--line);
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+  z-index: 40; box-shadow: 0 -2px 12px rgba(40,60,120,.06);
+}
+.mobitem {
+  flex: 1; border: none; background: transparent; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 4px 0; font-size: 10px; color: var(--ink-soft); font-weight: 700;
+  transition: color .15s;
+}
+.mobitem .mobicn { font-size: 20px; line-height: 1; }
+.mobitem.active { color: var(--brand); }
+
+/* ---------- 按钮 ---------- */
+.btn {
+  border: none; cursor: pointer; border-radius: 999px;
+  padding: 9px 16px; font-size: 14px; font-weight: 700;
+  background: var(--brand-soft); color: var(--brand);
+  transition: transform .08s ease, box-shadow .15s ease, background .15s;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.btn:active { transform: translateY(0); }
+.btn.primary { background: var(--brand); color: #fff; }
+.btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink-soft); }
+.btn.small { padding: 7px 12px; font-size: 13px; }
+.btn.block { width: 100%; margin-top: 10px; }
+
+/* ---------- 日进度 ---------- */
+.daily-progress { padding: 10px 20px; background: var(--bg-soft); }
+.dp-info { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-soft); margin-bottom: 5px; }
+.dp-bar { height: 8px; background: #e3e8f2; border-radius: 999px; overflow: hidden; }
+.dp-fill { height: 100%; width: 0%; background: linear-gradient(90deg,#3b7df6,#7aa2ff); transition: width .4s ease; }
+
+/* ---------- 导航 ---------- */
+.mainnav {
+  display: flex; gap: 8px; padding: 12px 20px; overflow-x: auto;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.navitem {
+  border: none; background: transparent; cursor: pointer;
+  padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 700;
+  color: var(--ink-soft); white-space: nowrap; transition: all .15s;
+}
+.navitem:hover { background: var(--bg-soft); }
+.navitem.active { background: var(--brand); color: #fff; }
+
+/* ---------- 筛选 ---------- */
+.filters {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  padding: 14px 20px; background: var(--bg);
+}
+.filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  border: 1px solid var(--line); background: #fff; cursor: pointer;
+  padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  color: var(--ink-soft); transition: all .15s; display: inline-flex; align-items: center; gap: 4px;
+}
+.chip:hover { border-color: var(--brand); color: var(--brand); }
+.chip.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.filter-search { flex: 1; min-width: 180px; }
+.filter-search input {
+  width: 100%; padding: 9px 14px; border: 1px solid var(--line);
+  border-radius: 999px; font-size: 14px; outline: none; background: #fff;
+}
+.filter-search input:focus { border-color: var(--brand); }
+
+/* ---------- 内容区 ---------- */
+.content { padding: 18px 20px 80px; max-width: 1180px; margin: 0 auto; }
+.section-title { font-size: 17px; margin: 6px 0 14px; }
+.muted { color: var(--ink-soft); font-size: 14px; }
+
+/* ---------- 卡片 ---------- */
+.card-grid {
+  display: grid; gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+}
+.fcard {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 18px; display: flex; flex-direction: column; gap: 12px;
+  border: 1px solid var(--line); position: relative; transition: transform .12s ease;
+}
+.fcard:hover { transform: translateY(-2px); }
+.fcard .badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.lvl {
+  font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; color: #fff;
+}
+.scene-tag { font-size: 12px; color: var(--ink-soft); }
+.star {
+  margin-left: auto; background: none; border: none; cursor: pointer; font-size: 20px;
+  color: #d7dbe6; line-height: 1; transition: transform .15s, color .15s;
+}
+.star:hover { transform: scale(1.2); }
+.star.on { color: #ffc107; }
+
+.sentence { font-size: 19px; font-weight: 700; line-height: 1.5; }
+.dialogue { background: var(--bg-soft); border-radius: 12px; padding: 10px 12px; font-size: 14.5px; }
+.dialogue .line { display: flex; gap: 8px; padding: 3px 0; }
+.dialogue .who {
+  font-weight: 800; font-size: 12px; min-width: 20px; color: var(--brand);
+}
+.dialogue-actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+
+/* 重点词 */
+.kw {
+  color: var(--kw); background: var(--kw-bg); border-radius: 7px;
+  padding: 1px 6px; cursor: pointer; font-weight: 700; position: relative;
+  border-bottom: 2px solid var(--kw);
+}
+.kw:hover { background: #ffe2d8; }
+.kw .ipa { font-size: 11px; color: #b3563c; font-weight: 600; margin-left: 4px; font-style: italic; }
+.speak-btn {
+  border: none; background: var(--kw); color: #fff; cursor: pointer;
+  width: 20px; height: 20px; border-radius: 50%; font-size: 10px;
+  margin-left: 3px; padding: 0; vertical-align: middle; line-height: 1;
+  transition: transform .1s ease, box-shadow .15s ease;
+}
+.speak-btn:hover { background: #ff6a44; }
+.speak-btn:active, .speak-btn.speaking {
+  transform: scale(1.25); box-shadow: 0 0 10px rgba(255,122,89,.5);
+  background: #ff5722;
+}
+
+.culture {
+  background: #fff8ec; border-left: 4px solid var(--warn);
+  border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #7a5a1e;
+}
+.culture b { color: #b9801e; }
+
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; }
+.card-actions .btn { font-size: 13px; }
+
+/* 空状态 */
+.empty {
+  text-align: center; padding: 60px 20px; color: var(--ink-soft);
+}
+.empty .emoji { font-size: 46px; }
+
+/* ---------- 弹窗 ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(20,30,60,.45);
+  display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px;
+}
+.modal-overlay[hidden] { display: none; }
+.modal {
+  background: #fff; border-radius: 18px; padding: 22px; width: 100%;
+  max-width: 560px; max-height: 86vh; overflow-y: auto; position: relative;
+  box-shadow: 0 20px 60px rgba(20,30,60,.25); animation: pop .18s ease;
+}
+@keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal-close {
+  position: absolute; top: 14px; right: 14px; border: none; background: var(--bg-soft);
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 15px; color: var(--ink-soft);
+}
+.modal-close:hover { background: #e2e7f1; }
+
+/* 词详情面板 */
+.word-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.word-head .w { font-size: 28px; font-weight: 800; color: var(--kw); }
+.word-head .ipa { font-size: 16px; color: #b3563c; font-style: italic; }
+.word-head .pos { font-size: 13px; color: #fff; background: var(--brand); padding: 2px 9px; border-radius: 999px; }
+.word-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+.word-row .k { min-width: 64px; color: var(--ink-soft); font-weight: 700; }
+.word-row .v { flex: 1; }
+.word-ex { background: var(--bg-soft); border-radius: 10px; padding: 10px 12px; margin-top: 10px; font-size: 14px; }
+.word-ex li { margin: 4px 0; }
+.word-speak { margin-top: 12px; }
+
+/* 语法面板 */
+.grammar-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+.grammar-tabs .chip.active { background: var(--brand); color: #fff; }
+.gtable { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.gtable th, .gtable td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; }
+.gtable th { background: var(--bg-soft); }
+.gtable tr:nth-child(even) td { background: #fafbff; }
+.gnote { font-size: 13px; color: var(--ink-soft); margin-top: 8px; }
+
+/* AI 陪练 */
+.ai-scene { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.ai-chat { background: var(--bg-soft); border-radius: 12px; padding: 12px; height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.bubble { max-width: 80%; padding: 9px 13px; border-radius: 14px; font-size: 14px; }
+.bubble.ai { background: #fff; align-self: flex-start; border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.bubble.me { background: var(--brand); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+.bubble.sys { align-self: center; background: #fff3e6; color: #b9801e; font-size: 12.5px; text-align: center; border-radius: 10px; padding: 6px 12px; }
+.ai-input { display: flex; gap: 10px; margin-top: 12px; align-items: center; }
+.ai-typing { display: flex; gap: 8px; flex: 1; }
+.ai-typing input { flex: 1; padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 14px; outline: none; }
+.ai-typing input:focus { border-color: var(--brand); }
+.mic-main { flex: none; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 66px; height: 66px; border-radius: 50%; border: none; cursor: pointer; background: linear-gradient(135deg, var(--brand), #5b8def); color: #fff; box-shadow: 0 4px 14px rgba(91,141,239,.4); transition: transform .12s, box-shadow .2s; }
+.mic-main:hover { transform: translateY(-1px); }
+.mic-main:active { transform: scale(.95); }
+.mic-main .mic-ico { font-size: 24px; line-height: 1; }
+.mic-main .mic-txt { font-size: 10px; margin-top: 3px; opacity: .92; }
+.mic-main.recording { background: linear-gradient(135deg, #ff5252, #ff7a7a); animation: micPulse 1.1s infinite; }
+@keyframes micPulse { 0% { box-shadow: 0 0 0 0 rgba(255,82,82,.55); } 70% { box-shadow: 0 0 0 16px rgba(255,82,82,0); } 100% { box-shadow: 0 0 0 0 rgba(255,82,82,0); } }
+.ai-hint { margin-top: 8px; font-size: 12px; color: var(--ink-soft); text-align: center; }
+.ai-hint b { color: var(--brand); }
+
+/* 录音 / 波形 */
+.recorder { margin-top: 10px; background: var(--bg-soft); border-radius: 12px; padding: 12px; }
+.wave-wrap { display: flex; gap: 14px; flex-wrap: wrap; }
+.wave-box { flex: 1; min-width: 220px; }
+.wave-box .cap { font-size: 12px; color: var(--ink-soft); margin-bottom: 4px; }
+canvas.wave { width: 100%; height: 70px; background: #fff; border-radius: 8px; border: 1px solid var(--line); display: block; }
+.rec-controls { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.rec-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--bad); display: none; }
+.rec-dot.live { display: inline-block; animation: blink 1s infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+.rec-result { font-size: 13px; margin-top: 8px; }
+.rec-result .ok { color: var(--good); font-weight: 700; }
+.rec-result .miss { color: var(--bad); font-weight: 700; text-decoration: line-through; }
+.accuracy-ring { font-size: 13px; font-weight: 700; }
+.suggestions { background: #eaf7f0; border-left: 4px solid var(--good); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin-top: 8px; }
+
+/* 错句本 */
+.err-item { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+.err-item .meta { font-size: 12px; color: var(--ink-soft); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.err-item .wrong { color: var(--bad); text-decoration: line-through; }
+.err-item .right { color: var(--good); font-weight: 700; }
+.err-item .reason { font-size: 13px; margin-top: 4px; }
+
+/* 周报 */
+.report-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); }
+.stat-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+.stat-card .num { font-size: 30px; font-weight: 800; color: var(--brand); }
+.stat-card .lbl { font-size: 13px; color: var(--ink-soft); }
+.chart-box { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); margin-top: 16px; }
+.chart-box h3 { font-size: 15px; }
+.bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding-top: 10px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.bar { width: 60%; background: linear-gradient(180deg,#7aa2ff,#3b7df6); border-radius: 6px 6px 0 0; transition: height .5s; }
+.bar-col .blbl { font-size: 11px; color: var(--ink-soft); margin-top: 4px; }
+.bar-col .bval { font-size: 11px; font-weight: 700; }
+
+/* 自定义表单 */
+.form-grid { display: grid; gap: 12px; }
+.field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px; color: var(--ink-soft); }
+.field input, .field textarea, .field select {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line);
+  border-radius: 10px; font-size: 14px; outline: none; font-family: inherit;
+}
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--brand); }
+.field textarea { resize: vertical; min-height: 64px; }
+.hint { font-size: 12px; color: var(--ink-soft); }
+
+/* 打印 / 导出 */
+@media print {
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea { position: absolute; left: 0; top: 0; width: 100%; }
+  .pcard { break-inside: avoid; border: 1px solid #ccc; border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+  .pkw { color: #b3563c; font-weight: 700; }
+}
+
+/* 浮动按钮 */
+.fab {
+  position: fixed; right: 20px; bottom: 20px; width: 46px; height: 46px;
+  border-radius: 50%; border: none; background: var(--brand); color: #fff;
+  font-size: 20px; cursor: pointer; box-shadow: var(--shadow); z-index: 40;
+}
+.fab[hidden] { display: none; }
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .topbar { padding: 12px; }
+  .brand h1 { font-size: 18px; }
+  .tagline { display: none; }
+  .content { padding: 14px 12px 90px; }
+  .card-grid { grid-template-columns: 1fr; }
+  .topbar-right .btn { padding: 7px 10px; font-size: 12px; }
+  .sentence { font-size: 17px; }
+  .mainnav { display: none; }
+  .mobnav { display: flex; }
+  .filters { padding: 10px 12px; }
+  .filter-search { min-width: 140px; order: 1; flex-basis: 100%; }
+  .filter-group { order: 2; }
+  .filters .btn, .filters #levelPref { order: 3; }
+  .modal { max-height: 92vh; margin-bottom: 70px; }
+  #wordPanel { bottom: calc(60px + env(safe-area-inset-bottom)); }
+  .tts-loading { bottom: calc(78px + env(safe-area-inset-bottom)); }
+}
+
+@media (min-width: 641px) {
+  .mobnav { display: none; }
+}
+
+/* 语速控制条 */
+.speedbar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.speed-label{font-size:13px;color:var(--ink-soft);font-weight:600;white-space:nowrap}
+.seg{display:inline-flex;background:var(--bg-soft);border-radius:999px;padding:3px}
+.segbtn{border:0;background:transparent;padding:6px 14px;border-radius:999px;font-size:13px;color:var(--ink-soft);cursor:pointer;transition:.15s;font-family:inherit}
+.segbtn.active{background:var(--brand);color:#fff;box-shadow:0 2px 8px rgba(59,124,255,.35)}
+.tts-loading{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2b3245;color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;z-index:98;box-shadow:0 6px 22px rgba(0,0,0,.2)}
+#wordPanel{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);box-shadow:0 -8px 30px rgba(40,60,120,.12);padding:12px 14px calc(12px + env(safe-area-inset-bottom));z-index:97;max-height:46vh;overflow:auto}
+.wp-head{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);margin-bottom:8px}.wp-head>span{flex:1}.wp-close{border:0;background:var(--bg-soft);color:var(--ink-soft);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
+.wp-words{display:flex;flex-wrap:wrap;gap:8px}
+.wp-word{border:1px solid var(--line);background:var(--bg-soft);border-radius:10px;padding:7px 11px;font-size:15px;color:var(--ink);cursor:pointer;transition:.12s;font-family:inherit;text-align:left;line-height:1.3}
+.wp-word.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.wp-word.kw{border-color:var(--kw);background:var(--kw-bg);color:var(--kw);font-weight:700}
+.wp-word.kw.active{background:var(--kw);color:#fff}
+.wp-word .ipa{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
+.wp-toggle{border:0;background:var(--brand);color:#fff;padding:5px 12px;border-radius:999px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.wp-resume{display:block;width:100%;margin:0 0 8px;padding:9px;border:1px solid var(--brand);background:var(--brand-soft);color:var(--brand);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.wp-resume[hidden]{display:none}
+</style>
+</head>
+<body>
+  <!-- 语音诊断条 -->
+  <div id="audioBanner" class="audio-banner" hidden>
+    <span id="audioBannerText"></span>
+    <button id="audioBannerClose" style="border:none;background:none;cursor:pointer;font-size:16px;margin-left:8px">✕</button>
+  </div>
+  <!-- 顶部栏 -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🗣️</span>
+      <div>
+        <h1>SpeakDeck</h1>
+        <p class="tagline">卡片式英语口语工作台</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="streak" id="streakBox" title="连续打卡天数">
+        🔥 <span id="streakDays">0</span> 天
+      </div>
+      <button class="btn ghost" id="grammarBtn">📚 语法速查</button>
+      <button class="btn primary" id="aiBtn">🤖 AI陪练</button>
+    </div>
+  </header>
+
+  <!-- 每日进度条 -->
+  <div class="daily-progress">
+    <div class="dp-info">
+      <span id="dpLabel">今日新卡 0 / 0</span>
+      <span id="dpDate"></span>
+    </div>
+    <div class="dp-bar"><div class="dp-fill" id="dpFill"></div></div>
+  </div>
+
+  <!-- 语速控制 -->
+  <div class="speedbar" id="speedbar">
+    <span class="speed-label">🔊 语速</span>
+    <div class="seg" id="speedSeg" role="group" aria-label="语速选择">
+      <button class="segbtn active" data-speed="normal">正常</button>
+      <button class="segbtn" data-speed="slow">慢速</button>
+      <button class="segbtn" data-speed="word">逐词</button>
+    </div>
+  </div>
+
+  <!-- 主导航 -->
+  <nav class="mainnav" id="mainnav">
+    <button class="navitem active" data-view="learn">📚 学卡片</button>
+    <button class="navitem" data-view="review">🔁 今日复习</button>
+    <button class="navitem" data-view="fav">⭐ 收藏</button>
+    <button class="navitem" data-view="errors">📕 错句本</button>
+    <button class="navitem" data-view="report">📊 周报</button>
+    <button class="navitem" data-view="custom">➕ 自定义</button>
+  </nav>
+
+  <!-- 移动端底部导航 -->
+  <nav class="mobnav" id="mobnav">
+    <button class="mobitem active" data-view="learn"><span class="mobicn">📚</span><span>学卡片</span></button>
+    <button class="mobitem" data-view="review"><span class="mobicn">🔁</span><span>复习</span></button>
+    <button class="mobitem" data-view="fav"><span class="mobicn">⭐</span><span>收藏</span></button>
+    <button class="mobitem" data-view="errors"><span class="mobicn">📕</span><span>错句</span></button>
+    <button class="mobitem" data-view="custom"><span class="mobicn">➕</span><span>自定义</span></button>
+  </nav>
+
+  <!-- 筛选条 -->
+  <section class="filters" id="filterBar">
+    <div class="filter-group" id="sceneFilter"></div>
+    <div class="filter-group" id="levelFilter"></div>
+    <div class="filter-search">
+      <input type="search" id="searchInput" placeholder="🔍 搜索句子 / 单词…" />
+    </div>
+    <button class="btn small" id="dailyBtn">🎯 今日推荐</button>
+    <select id="levelPref" class="chip" title="每日推荐难度偏好" style="padding:6px 10px">
+      <option value="all">全部难度推荐</option>
+      <option value="survival">优先生存英语</option>
+      <option value="daily">优先日常熟练</option>
+      <option value="native">优先地道表达</option>
+    </select>
+  </section>
+
+  <!-- 内容区 -->
+  <main class="content" id="content"></main>
+
+  <!-- 词详情弹窗 -->
+  <div class="modal-overlay" id="wordModal" hidden>
+    <div class="modal word-panel" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close>✕</button>
+      <div id="wordModalBody"></div>
+    </div>
+  </div>
+
+  <!-- 语法速查弹窗 -->
+  <div class="modal-overlay" id="grammarModal" hidden>
+    <div class="modal grammar-panel" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close>✕</button>
+      <h2>📚 语法速查</h2>
+      <div class="grammar-tabs" id="grammarTabs"></div>
+      <div id="grammarBody"></div>
+    </div>
+  </div>
+
+  <!-- AI 陪练弹窗 -->
+  <div class="modal-overlay" id="aiModal" hidden>
+    <div class="modal ai-panel" role="dialog" aria-modal="true">
+      <button class="modal-close" data-close>✕</button>
+      <h2>🤖 AI 陪练</h2>
+      <div class="ai-scene" id="aiScenePick"></div>
+      <div class="ai-chat" id="aiChat"></div>
+      <div class="ai-input" id="aiInputBar">
+        <button class="mic-main" id="aiMic" title="点击说英语">
+          <span class="mic-ico">🎤</span>
+          <span class="mic-txt" id="aiMicTxt">点击说</span>
+        </button>
+        <div class="ai-typing">
+          <input type="text" id="aiInput" placeholder="不想开口？也可以打字…" />
+          <button class="btn small ghost" id="aiSend">发送</button>
+        </div>
+      </div>
+      <div class="ai-hint" id="aiHint" hidden>🎤 <b>点麦克风直接开口说</b>，AI 会用英语和你对话；说完稍等即自动识别。</div>
+    </div>
+  </div>
+
+  <!-- 浮动操作 -->
+  <button class="fab" id="scrollTop" title="回到顶部" hidden>↑</button>
+
+  <script>
+/* ============================================================
+ *  SpeakDeck 数据层
+ * ============================================================ */
+
+const SCENES = [
+  { id: 'greeting', name: '日常寒暄', emoji: '👋' },
+  { id: 'shopping', name: '购物',     emoji: '🛍️' },
+  { id: 'dining',   name: '点餐',     emoji: '🍽️' },
+  { id: 'direction',name: '问路',     emoji: '🧭' },
+  { id: 'chatting', name: '闲聊',     emoji: '💬' },
+  { id: 'phone',   name: '打电话',   emoji: '📞' },
+  { id: 'emotion', name: '表达情绪', emoji: '😊' },
+  { id: 'work',    name: '职场沟通', emoji: '💼' },
+  { id: 'travel',  name: '旅行',     emoji: '✈️' },
+  { id: 'dating',  name: '约会社交', emoji: '🌹' },
+];
+
+const LEVELS = [
+  { id: 'survival', name: '生存英语', color: '#ff8a65' },
+  { id: 'daily',    name: '日常熟练', color: '#4db6ac' },
+  { id: 'native',   name: '地道表达', color: '#9575cd' },
+];
+
+const IPA = {
+  recommend: '/ˌrekəˈmend/', local: '/ˈloʊkl/', catch: '/kætʃ/',
+  up: '/ʌp/', meet: '/miːt/', hang: '/hæŋ/',
+  bargain: '/ˈbɑːrɡən/', discount: '/ˈdɪskaʊnt/', size: '/saɪz/',
+  fitting: '/ˈfɪtɪŋ/', refund: '/ˈriːfʌnd/', sale: '/seɪl/',
+  order: '/ˈɔːrdər/', medium: '/ˈmiːdiəm/', rare: '/rer/',
+  bill: '/bɪl/', spicy: '/ˈspaɪsi/',
+  direction: '/dɪˈrekʃn/', cross: '/krɔːs/', block: '/blɑːk/',
+  straight: '/streɪt/', turn: '/tɜːrn/', nearest: '/ˈnɪrɪst/',
+  subway: '/ˈsʌbweɪ/', corner: '/ˈkɔːrnər/',
+  weather: '/ˈweðər/', weekend: '/ˈwiːkend/', hobby: '/ˈhɑːbi/',
+  plan: '/plæn/', movie: '/ˈmuːvi/', show: '/ʃoʊ/',
+  message: '/ˈmesɪdʒ/', call: '/kɔːl/', busy: '/ˈbɪzi/',
+  hold: '/hoʊld/', number: '/ˈnʌmbər/', voicemail: '/ˈvɔɪsmeɪl/',
+  repeat: '/rɪˈpiːt/',
+  exhausted: '/ɪɡˈzɔːstɪd/', thrilled: '/θrɪld/', annoyed: '/əˈnɔɪd/',
+  worried: '/ˈwɜːrid/', calm: '/kɑːm/', frustrated: '/frʌˈstreɪtɪd/',
+  tired: '/ˈtaɪərd/',
+  deadline: '/ˈdedlaɪn/', schedule: '/ˈskedʒuːl/', meeting: '/ˈmiːtɪŋ/',
+  feedback: '/ˈfiːdbæk/', project: '/ˈprɑːdʒekt/', report: '/rɪˈpɔːrt/',
+  reservation: '/ˌrezərˈveɪʃn/', luggage: '/ˈlʌɡɪdʒ/', flight: '/flaɪt/',
+  passport: '/ˈpæspɔːrt/', checkout: '/ˈtʃekaʊt/', tourist: '/ˈtʊrɪst/',
+  date: '/deɪt/', treat: '/triːt/', awesome: '/ˈɔːsəm/',
+  vibe: '/vaɪb/', introduce: '/ˌɪntrəˈdjuːs/', join: '/dʒɔɪn/',
+  the: '/ðə/', a: '/ə/', an: '/æn/', is: '/ɪz/', are: '/ɑːr/',
+  you: '/juː/', your: '/jɔːr/', this: '/ðɪs/', that: '/ðæt/',
+  please: '/pliːz/', thanks: '/θæŋks/', sorry: '/ˈsɑːri/',
+  help: '/help/', like: '/laɪk/', want: '/wɑːnt/', need: '/niːd/',
+  good: '/ɡʊd/', great: '/ɡreɪt/', nice: '/naɪs/', time: '/taɪm/',
+  can: '/kæn/', could: '/kʊd/', would: '/wʊd/', should: '/ʃʊd/',
+  have: '/hæv/', has: '/hæz/', do: '/duː/', does: '/dʌz/',
+  what: '/wʌt/', where: '/wer/', when: '/wen/', how: '/haʊ/',
+  who: '/huː/', why: '/waɪ/', which: '/wɪtʃ/',
+  eat: '/iːt/', drink: '/drɪŋk/', go: '/ɡoʊ/', get: '/ɡet/',
+  make: '/meɪk/', take: '/teɪk/', see: '/siː/', know: '/noʊ/',
+  think: '/θɪŋk/', feel: '/fiːl/', love: '/lʌv/', hate: '/heɪt/',
+  come: '/kʌm/', find: '/faɪnd/', buy: '/baɪ/', pay: '/peɪ/',
+  work: '/wɜːrk/', live: '/lɪv/', learn: '/lɜːrn/', speak: '/spiːk/',
+  friend: '/frend/', family: '/ˈfæməli/', food: '/fuːd/', water: '/ˈwɔːtər/',
+  today: '/təˈdeɪ/', tomorrow: '/təˈmɑːroʊ/', yesterday: '/ˈjestərdeɪ/',
+  morning: '/ˈmɔːrnɪŋ/', evening: '/ˈiːvnɪŋ/', night: '/naɪt/',
+  people: '/ˈpiːpl/', place: '/pleɪs/', thing: '/θɪŋ/', way: '/weɪ/',
+  money: '/ˈmʌni/', price: '/praɪs/', name: '/neɪm/', home: '/hoʊm/',
+  car: '/kɑːr/', bus: '/bʌs/', train: '/treɪn/', taxi: '/ˈtæksi/',
+  store: '/stɔːr/', market: '/ˈmɑːrkɪt/', restaurant: '/ˈrestrɑːnt/',
+  hotel: '/hoʊˈtel/', station: '/ˈsteɪʃn/', airport: '/ˈerpɔːrt/',
+  open: '/ˈoʊpən/', close: '/kloʊz/', free: '/friː/', sure: '/ʃʊr/',
+  right: '/raɪt/', left: '/left/', here: '/hɪr/', there: '/ðer/',
+};
+
+const CARDS = [
+  {
+    "id": "g1",
+    "scene": "greeting",
+    "level": "survival",
+    "sentence": "Long time no [[see]]! How have you been?",
+    "dialogue": [
+      { "sp": "A", "text": "Long time no [[see]]! How have you been?", "translation": "好久不见！你最近怎么样？" },
+      { "sp": "B", "text": "Pretty good, thanks! Just busy with work.", "translation": "挺好的，谢谢！就是工作有点忙。" }
+    ],
+    "cultureTip": "“Long time no see” 是典型的中式英语逆袭成地道表达的例子，英美日常都常用，但正式场合建议说 “It’s been a while.”",
+    "keywords": [
+      { "w": "see", "ipa": "/siː/", "pos": "v.", "root": "古英语 seon（看）", "affix": "—", "enDef": "to perceive with the eyes; to meet", "cnDef": "看见；会见", "ex": ["Let’s see each other next week.","I see what you mean."], "exCn": ["我们下周见个面吧。","我明白你的意思。"] }
+    ],
+    "sentenceTranslation": "好久不见！你最近怎么样？"
+  },
+  {
+    "id": "g2",
+    "scene": "greeting",
+    "level": "daily",
+    "sentence": "We should totally [[hang]] out sometime.",
+    "dialogue": [
+      { "sp": "A", "text": "We should totally [[hang]] out sometime.", "translation": "我们哪天应该一起聚聚。" },
+      { "sp": "B", "text": "Definitely! How about this weekend?", "translation": "好啊！这周末怎么样？" }
+    ],
+    "keywords": [
+      { "w": "hang", "ipa": "/hæŋ/", "pos": "v. (phrasal: hang out)", "root": "古英语 hangian（悬挂）", "affix": "out 副词补足", "enDef": "to spend time relaxing with friends", "cnDef": "（朋友间）闲逛、聚会", "ex": ["We hung out at the mall.","They hang out every Friday."], "exCn": ["我们在商场逛了逛。","他们每周五都一起出去玩。"] }
+    ],
+    "sentenceTranslation": "我们哪天应该一起聚聚。"
+  },
+  {
+    "id": "g3",
+    "scene": "greeting",
+    "level": "native",
+    "sentence": "Good to [[catch]] up with you!",
+    "dialogue": [
+      { "sp": "A", "text": "Good to [[catch]] up with you!", "translation": "很高兴和你叙叙旧！" },
+      { "sp": "B", "text": "Likewise! We really should do this more often.", "translation": "我也是！我们真该多聚聚。" }
+    ],
+    "cultureTip": "“Catch up” 专指补叙近况、叙旧，是社交寒暄高频词；熟人之间用非常自然。",
+    "keywords": [
+      { "w": "catch", "ipa": "/kætʃ/", "pos": "v. (phrasal: catch up)", "root": "古法语 chacier（追逐）", "affix": "up 表“赶上”", "enDef": "to reach the same point; to share recent news", "cnDef": "赶上；叙旧、补聊近况", "ex": ["I need to catch up on my emails.","Let’s catch up over coffee."], "exCn": ["我得补看一下邮件。","我们一起喝杯咖啡叙叙旧吧。"] }
+    ],
+    "sentenceTranslation": "很高兴和你叙叙旧！"
+  },
+  {
+    "id": "s1",
+    "scene": "shopping",
+    "level": "survival",
+    "sentence": "Do you have this in a larger [[size]]?",
+    "dialogue": [
+      { "sp": "A", "text": "Do you have this in a larger [[size]]?", "translation": "这个有大一号的吗？" },
+      { "sp": "B", "text": "Sure, let me check the back for you.", "translation": "有的，我去后面帮您查一下。" }
+    ],
+    "keywords": [
+      { "w": "size", "ipa": "/saɪz/", "pos": "n.", "root": "古法语 sise（裁度）", "affix": "—", "enDef": "the measurements of something", "cnDef": "尺码、大小", "ex": ["What size are your shoes?","This size fits perfectly."], "exCn": ["你穿多大码的鞋？","这个尺码刚刚好。"] }
+    ],
+    "sentenceTranslation": "这个有大一号的吗？"
+  },
+  {
+    "id": "s2",
+    "scene": "shopping",
+    "level": "daily",
+    "sentence": "Is there any [[discount]] if I buy two?",
+    "dialogue": [
+      { "sp": "A", "text": "Is there any [[discount]] if I buy two?", "translation": "买两件有折扣吗？" },
+      { "sp": "B", "text": "Yes, we take 10% off for a pair.", "translation": "有的，两件九折。" }
+    ],
+    "keywords": [
+      { "w": "discount", "ipa": "/ˈdɪskaʊnt/", "pos": "n./v.", "root": "dis-（去除）+ count（计算）", "affix": "dis- 否定/去除", "enDef": "a reduction in price", "cnDef": "折扣", "ex": ["Students get a discount.","They discounted the old stock."], "exCn": ["学生有折扣。","他们对旧库存打了折。"] }
+    ],
+    "sentenceTranslation": "买两件有折扣吗？"
+  },
+  {
+    "id": "s3",
+    "scene": "shopping",
+    "level": "native",
+    "sentence": "Can I [[bargain]] the price down a bit?",
+    "dialogue": [
+      { "sp": "A", "text": "Can I [[bargain]] the price down a bit?", "translation": "我能稍微还点价吗？" },
+      { "sp": "B", "text": "At a flea market maybe—but not in this store!", "translation": "在跳蚤市场可以——但本店不行！" }
+    ],
+    "cultureTip": "在英美正规商店几乎不能讨价还价；只有跳蚤市场、车展、私人二手交易才适合 “bargain”。乱砍价会显得不专业。",
+    "keywords": [
+      { "w": "bargain", "ipa": "/ˈbɑːrɡən/", "pos": "n./v.", "root": "古法语 bargaignier（交易）", "affix": "—", "enDef": "an agreement on price; to negotiate", "cnDef": "便宜货；讨价还价", "ex": ["That was a real bargain!","We bargained for a lower rate."], "exCn": ["那真是捡了个便宜！","我们讨价还价要了个更低的价。"] }
+    ],
+    "sentenceTranslation": "我能稍微还点价吗？"
+  },
+  {
+    "id": "d1",
+    "scene": "dining",
+    "level": "survival",
+    "sentence": "I’d like to [[order]] a coffee, please.",
+    "dialogue": [
+      { "sp": "A", "text": "I’d like to [[order]] a coffee, please.", "translation": "我想点一杯咖啡。" },
+      { "sp": "B", "text": "Sure, what kind would you like?", "translation": "好的，您要哪种咖啡？" }
+    ],
+    "keywords": [
+      { "w": "order", "ipa": "/ˈɔːrdər/", "pos": "v./n.", "root": "拉丁 ordo（顺序）", "affix": "—", "enDef": "to request food or goods", "cnDef": "点（餐）；订单", "ex": ["She ordered a salad.","Your order will be ready soon."], "exCn": ["她点了一份沙拉。","您点的餐马上就好。"] }
+    ],
+    "sentenceTranslation": "我想点一杯咖啡。"
+  },
+  {
+    "id": "d2",
+    "scene": "dining",
+    "level": "daily",
+    "sentence": "Could you [[recommend]] a local dish?",
+    "dialogue": [
+      { "sp": "A", "text": "Could you [[recommend]] a local dish?", "translation": "你能推荐一道本地菜吗？" },
+      { "sp": "B", "text": "Try the braised pork—it’s their specialty.", "translation": "试试红烧肉——这是他们的招牌菜。" }
+    ],
+    "keywords": [
+      { "w": "recommend", "ipa": "/ˌrekəˈmend/", "pos": "v.", "root": "re-（再）+ commend（托付）", "affix": "re- 反复", "enDef": "to suggest something as good", "cnDef": "推荐；建议", "ex": ["I recommend this restaurant.","She recommended a good book."], "exCn": ["我推荐这家餐厅。","她推荐了一本好书。"] }
+    ],
+    "sentenceTranslation": "你能推荐一道本地菜吗？"
+  },
+  {
+    "id": "d3",
+    "scene": "dining",
+    "level": "native",
+    "sentence": "Make it [[medium]]-rare, please.",
+    "dialogue": [
+      { "sp": "A", "text": "Make it [[medium]]-rare, please.", "translation": "请做成三分熟。" },
+      { "sp": "B", "text": "Got it—medium-rare, no problem.", "translation": "好的——三分熟，没问题。" }
+    ],
+    "cultureTip": "点牛排时 “medium-rare（三分熟）” 是西餐厅最常被点的熟度；说 “well done” 在外国人眼里往往显得“暴殄天物”。",
+    "keywords": [
+      { "w": "medium", "ipa": "/ˈmiːdiəm/", "pos": "adj./n.", "root": "拉丁 medius（中间）", "affix": "—", "enDef": "in the middle; average", "cnDef": "中等的；介质", "ex": ["Medium size, please.","The medium is the message."], "exCn": ["请给我中号的。","媒介即信息。"] },
+      { "w": "rare", "ipa": "/rer/", "pos": "adj.", "root": "拉丁 rarus（稀疏）", "affix": "—", "enDef": "cooked very lightly; uncommon", "cnDef": "（牛排）三分熟；稀有的", "ex": ["A rare steak is pink inside.","This coin is rare."], "exCn": ["三分熟的牛排里面是粉红色的。","这枚硬币很稀有。"] }
+    ],
+    "sentenceTranslation": "请做成三分熟。"
+  },
+  {
+    "id": "r1",
+    "scene": "direction",
+    "level": "survival",
+    "sentence": "Where is the nearest [[subway]] station?",
+    "dialogue": [
+      { "sp": "A", "text": "Where is the nearest [[subway]] station?", "translation": "最近的地铁站在哪里？" },
+      { "sp": "B", "text": "Go [[straight]] and it’s on your left.", "translation": "直走，就在您的左手边。" }
+    ],
+    "keywords": [
+      { "w": "straight", "ipa": "/streɪt/", "pos": "adv./adj.", "root": "古英语 streht（伸展）", "affix": "—", "enDef": "in a direct line; not curved", "cnDef": "直地；直的", "ex": ["Go straight ahead.","He stood straight."], "exCn": ["一直往前走。","他站得笔直。"] },
+      { "w": "subway", "ipa": "/ˈsʌbweɪ/", "pos": "n.", "root": "sub-（下）+ way（路）", "affix": "sub- 下", "enDef": "an underground train system", "cnDef": "地铁", "ex": ["Take the subway to work.","The subway is crowded."], "exCn": ["坐地铁上班。","地铁很挤。"] }
+    ],
+    "sentenceTranslation": "最近的地铁站在哪里？"
+  },
+  {
+    "id": "r2",
+    "scene": "direction",
+    "level": "daily",
+    "sentence": "[[Turn]] right at the second [[cross]]ing.",
+    "dialogue": [
+      { "sp": "A", "text": "[[Turn]] right at the second [[cross]]ing.", "translation": "在第二个十字路口右转。" },
+      { "sp": "B", "text": "Got it, thanks for your help!", "translation": "明白了，谢谢您的帮助！" }
+    ],
+    "keywords": [
+      { "w": "turn", "ipa": "/tɜːrn/", "pos": "v./n.", "root": "古法语 torner（旋转）", "affix": "—", "enDef": "to change direction", "cnDef": "转弯；转向", "ex": ["Turn left at the light.","It’s your turn."], "exCn": ["在红绿灯处左转。","轮到你了。"] },
+      { "w": "cross", "ipa": "/krɔːs/", "pos": "v./n.", "root": "拉丁 crux（十字）", "affix": "—", "enDef": "to go across; a crossing", "cnDef": "穿过；十字路口", "ex": ["Cross the street carefully.","A cross marks the spot."], "exCn": ["过马路要小心。","一个十字标记着那个地方。"] }
+    ],
+    "sentenceTranslation": "在第二个十字路口右转。"
+  },
+  {
+    "id": "r3",
+    "scene": "direction",
+    "level": "native",
+    "sentence": "It’s just around the [[corner]], you can’t miss it.",
+    "dialogue": [
+      { "sp": "A", "text": "It’s just around the [[corner]], you can’t miss it.", "translation": "就在拐角处，你不会错过的。" },
+      { "sp": "B", "text": "Perfect, I’ll walk there. Thanks!", "translation": "太好了，我走过去。谢谢！" }
+    ],
+    "cultureTip": "“You can’t miss it” 是英国人指路时超爱用的收尾句，意思是“显眼得很，肯定找得到”；美国人同样通用。",
+    "keywords": [
+      { "w": "corner", "ipa": "/ˈkɔːrnər/", "pos": "n.", "root": "拉丁 cornu（角、犄角）", "affix": "—", "enDef": "a place where two streets meet", "cnDef": "拐角；街角", "ex": ["It's on the corner.","Turn the corner."], "exCn": ["它在拐角处。","拐过这个弯。"] }
+    ],
+    "sentenceTranslation": "就在拐角处，你不会错过的。"
+  },
+  {
+    "id": "c1",
+    "scene": "chatting",
+    "level": "survival",
+    "sentence": "How’s the [[weather]] there?",
+    "dialogue": [
+      { "sp": "A", "text": "How’s the [[weather]] there?", "translation": "那边天气怎么样？" },
+      { "sp": "B", "text": "Sunny and warm—perfect for a walk.", "translation": "晴朗温暖——很适合散步。" }
+    ],
+    "keywords": [
+      { "w": "weather", "ipa": "/ˈweðər/", "pos": "n.", "root": "古英语 weder（风候）", "affix": "—", "enDef": "the state of the atmosphere", "cnDef": "天气", "ex": ["The weather is nice today.","We watched the weather forecast."], "exCn": ["今天天气很好。","我们看了天气预报。"] }
+    ],
+    "sentenceTranslation": "那边天气怎么样？"
+  },
+  {
+    "id": "c2",
+    "scene": "chatting",
+    "level": "daily",
+    "sentence": "Any [[plan]]s for the [[weekend]]?",
+    "dialogue": [
+      { "sp": "A", "text": "Any [[plan]]s for the [[weekend]]?", "translation": "周末有什么安排吗？" },
+      { "sp": "B", "text": "Nothing fixed yet—maybe a hike.", "translation": "还没定——可能去徒步。" }
+    ],
+    "keywords": [
+      { "w": "plan", "ipa": "/plæn/", "pos": "n./v.", "root": "拉丁 planus（平坦→平面图）", "affix": "—", "enDef": "a intention or arrangement", "cnDef": "计划", "ex": ["Do you have a plan?","We planned a trip."], "exCn": ["你有计划吗？","我们计划了一次旅行。"] },
+      { "w": "weekend", "ipa": "/ˈwiːkend/", "pos": "n.", "root": "week + end", "affix": "复合词", "enDef": "Saturday and Sunday", "cnDef": "周末", "ex": ["See you next weekend.","We relaxed all weekend."], "exCn": ["下周末见。","我们整个周末都在放松。"] }
+    ],
+    "sentenceTranslation": "周末有什么安排吗？"
+  },
+  {
+    "id": "c3",
+    "scene": "chatting",
+    "level": "native",
+    "sentence": "That [[show]] is totally binge-worthy!",
+    "dialogue": [
+      { "sp": "A", "text": "That [[show]] is totally binge-worthy!", "translation": "那部剧太适合一口气刷完了！" },
+      { "sp": "B", "text": "I know, I finished it in two days.", "translation": "我知道，我两天就刷完了。" }
+    ],
+    "cultureTip": "“Binge-worthy（值得一口气刷完的）” 是流媒体时代新俚语；binge 本意是“放纵（吃喝）”，现在常指刷剧。",
+    "keywords": [
+      { "w": "show", "ipa": "/ʃoʊ/", "pos": "n./v.", "root": "古英语 scēawian（观看）", "affix": "—", "enDef": "a TV program; to display", "cnDef": "节目；展示", "ex": ["What’s your favorite show?","She showed me the photo."], "exCn": ["你最喜欢的节目是什么？","她给我看了那张照片。"] }
+    ],
+    "sentenceTranslation": "那部剧太适合一口气刷完了！"
+  },
+  {
+    "id": "p1",
+    "scene": "phone",
+    "level": "survival",
+    "sentence": "Can I take a [[message]]?",
+    "dialogue": [
+      { "sp": "A", "text": "Can I take a [[message]]?", "translation": "我可以帮您留言吗？" },
+      { "sp": "B", "text": "Yes, please ask him to call me back.", "translation": "好的，请让他给我回电话。" }
+    ],
+    "keywords": [
+      { "w": "message", "ipa": "/ˈmesɪdʒ/", "pos": "n.", "root": "拉丁 missus（送出）", "affix": "-age 名词后缀", "enDef": "a written or spoken communication", "cnDef": "留言；信息", "ex": ["Leave me a message.","I got your message."], "exCn": ["给我留个言。","我收到你的消息了。"] }
+    ],
+    "sentenceTranslation": "我可以帮您留言吗？"
+  },
+  {
+    "id": "p2",
+    "scene": "phone",
+    "level": "daily",
+    "sentence": "Could you put me on [[hold]] for a sec?",
+    "dialogue": [
+      { "sp": "A", "text": "Could you put me on [[hold]] for a sec?", "translation": "您能帮我稍等一下吗？" },
+      { "sp": "B", "text": "Sure, I’ll be right back.", "translation": "好的，我马上回来。" }
+    ],
+    "keywords": [
+      { "w": "hold", "ipa": "/hoʊld/", "pos": "v./n.", "root": "古英语 healdan（保持）", "affix": "—", "enDef": "to keep; to wait on the phone", "cnDef": "握住；电话保留", "ex": ["Hold the line, please.","She held the baby."], "exCn": ["请别挂断。","她抱着宝宝。"] }
+    ],
+    "sentenceTranslation": "您能帮我稍等一下吗？"
+  },
+  {
+    "id": "p3",
+    "scene": "phone",
+    "level": "native",
+    "sentence": "Sorry, you cut out—can you [[repeat]] that?",
+    "dialogue": [
+      { "sp": "A", "text": "Sorry, you cut out—can you [[repeat]] that?", "translation": "不好意思，你刚才断线了——能再说一遍吗？" },
+      { "sp": "B", "text": "Sure, I said the meeting moved to three.", "translation": "好的，我说会议改到三点了。" }
+    ],
+    "cultureTip": "信号不好时母语者常说 “You cut out（你掉线/声音断了）” 或 “We have a bad connection”，比生硬地说 “I can’t hear you” 更地道。",
+    "keywords": [
+      { "w": "repeat", "ipa": "/rɪˈpiːt/", "pos": "v.", "root": "re-（再）+ pet（拉丁追寻）", "affix": "re- 反复", "enDef": "to say something again", "cnDef": "重复；再说一遍", "ex": ["Could you repeat that?","Please repeat after me."], "exCn": ["你能再说一遍吗？","请跟我重复。"] }
+    ],
+    "sentenceTranslation": "不好意思，你刚才断线了——能再说一遍吗？"
+  },
+  {
+    "id": "e1",
+    "scene": "emotion",
+    "level": "survival",
+    "sentence": "I’m so [[tired]] today.",
+    "dialogue": [
+      { "sp": "A", "text": "I’m so [[tired]] today.", "translation": "我今天好累。" },
+      { "sp": "B", "text": "Me too, let’s grab a coffee.", "translation": "我也是，我们去喝杯咖啡吧。" }
+    ],
+    "keywords": [
+      { "w": "tired", "ipa": "/ˈtaɪərd/", "pos": "adj.", "root": "tire（疲劳）", "affix": "-ed 形容词化", "enDef": "needing rest or sleep", "cnDef": "疲惫的；累的", "ex": ["I feel tired after work.","You look tired today."], "exCn": ["下班后我觉得很累。","你今天看起来很累。"] }
+    ],
+    "sentenceTranslation": "我今天好累。"
+  },
+  {
+    "id": "e2",
+    "scene": "emotion",
+    "level": "daily",
+    "sentence": "I’m a bit [[frustrated]] with this.",
+    "dialogue": [
+      { "sp": "A", "text": "I’m a bit [[frustrated]] with this.", "translation": "我对这件事有点沮丧。" },
+      { "sp": "B", "text": "Take a breath—we’ll figure it out.", "translation": "深呼吸——我们会解决的。" }
+    ],
+    "keywords": [
+      { "w": "frustrated", "ipa": "/frʌˈstreɪtɪd/", "pos": "adj.", "root": "拉丁 frustrari（徒劳）", "affix": "-ed 形容词化", "enDef": "feeling annoyed at being blocked", "cnDef": "沮丧的；受挫的", "ex": ["He felt frustrated at work.","Don’t get frustrated."], "exCn": ["他在工作中感到很受挫。","别灰心。"] }
+    ],
+    "sentenceTranslation": "我对这件事有点沮丧。"
+  },
+  {
+    "id": "e3",
+    "scene": "emotion",
+    "level": "native",
+    "sentence": "I’m absolutely [[thrilled]] about the news!",
+    "dialogue": [
+      { "sp": "A", "text": "I’m absolutely [[thrilled]] about the news!", "translation": "听到这个消息我太兴奋了！" },
+      { "sp": "B", "text": "That’s amazing—congratulations!", "translation": "太棒了——恭喜你！" }
+    ],
+    "cultureTip": "“Thrilled” 比 “very happy” 更有感染力，常用于好消息；注意它带强烈积极色彩，别用在平淡场合，否则显得夸张。",
+    "keywords": [
+      { "w": "thrilled", "ipa": "/θrɪld/", "pos": "adj.", "root": "thrill（使激动）", "affix": "-ed 形容词化", "enDef": "extremely pleased or excited", "cnDef": "极兴奋的", "ex": ["I’m thrilled to meet you.","She was thrilled by the gift."], "exCn": ["见到你我很兴奋。","她对这个礼物兴奋不已。"] },
+      { "w": "annoyed", "ipa": "/əˈnɔɪd/", "pos": "adj.", "root": "annoy（使烦恼）", "affix": "-ed 形容词化", "enDef": "slightly angry or irritated", "cnDef": "恼火的；厌烦的", "ex": ["I’m annoyed by the noise.","He looked annoyed."], "exCn": ["我被噪音吵得心烦。","他看起来很恼火。"] }
+    ],
+    "sentenceTranslation": "听到这个消息我太兴奋了！"
+  },
+  {
+    "id": "w1",
+    "scene": "work",
+    "level": "survival",
+    "sentence": "When is the [[deadline]]?",
+    "dialogue": [
+      { "sp": "A", "text": "When is the [[deadline]]?", "translation": "截止日期是什么时候？" },
+      { "sp": "B", "text": "End of day Friday—please prioritize it.", "translation": "周五下班前——请优先处理。" }
+    ],
+    "keywords": [
+      { "w": "deadline", "ipa": "/ˈdedlaɪn/", "pos": "n.", "root": "dead（死）+ line（线）", "affix": "复合词", "enDef": "the latest time something is due", "cnDef": "截止期限", "ex": ["The deadline is tomorrow.","We missed the deadline."], "exCn": ["截止日期是明天。","我们错过了截止日期。"] }
+    ],
+    "sentenceTranslation": "截止日期是什么时候？"
+  },
+  {
+    "id": "w2",
+    "scene": "work",
+    "level": "daily",
+    "sentence": "Could you give me some [[feedback]]?",
+    "dialogue": [
+      { "sp": "A", "text": "Could you give me some [[feedback]]?", "translation": "你能给我一些反馈吗？" },
+      { "sp": "B", "text": "Sure—overall solid, just tighten the intro.", "translation": "可以——整体不错，只要把开头收紧一点。" }
+    ],
+    "keywords": [
+      { "w": "feedback", "ipa": "/ˈfiːdbæk/", "pos": "n.", "root": "feed（喂）+ back（回）", "affix": "复合词", "enDef": "comments about performance", "cnDef": "反馈", "ex": ["Thanks for the feedback.","We need user feedback."], "exCn": ["谢谢你的反馈。","我们需要用户反馈。"] },
+      { "w": "meeting", "ipa": "/ˈmiːtɪŋ/", "pos": "n.", "root": "meet（会见）", "affix": "-ing 名词化", "enDef": "a gathering to discuss", "cnDef": "会议", "ex": ["The meeting is at three.","We had a long meeting."], "exCn": ["会议在三点。","我们开了一个很长的会。"] }
+    ],
+    "sentenceTranslation": "你能给我一些反馈吗？"
+  },
+  {
+    "id": "w3",
+    "scene": "work",
+    "level": "native",
+    "sentence": "Let’s circle back on this [[project]] tomorrow.",
+    "dialogue": [
+      { "sp": "A", "text": "Let’s circle back on this [[project]] tomorrow.", "translation": "我们明天再回头讨论这个项目吧。" },
+      { "sp": "B", "text": "Sounds good—I’ll prep the slides.", "translation": "好的——我会准备好幻灯片。" }
+    ],
+    "cultureTip": "“Circle back（回头再议）” 是美式职场黑话，指暂缓讨论、稍后跟进；类似还有 “loop in（拉人进群/知会）”“touch base（碰头）”。用太多会显得 jargon-heavy。",
+    "keywords": [
+      { "w": "project", "ipa": "/ˈprɑːdʒekt/", "pos": "n.", "root": "pro-（前）+ ject（投掷）", "affix": "pro- 向前", "enDef": "a planned piece of work", "cnDef": "项目", "ex": ["The project launches in May.","We project growth next year."], "exCn": ["项目将于五月上线。","我们预计明年会增长。"] },
+      { "w": "schedule", "ipa": "/ˈskedʒuːl/", "pos": "n./v.", "root": "拉丁 schedula（纸条）", "affix": "—", "enDef": "a plan of timings", "cnDef": "日程；安排", "ex": ["Check your schedule.","We scheduled a call."], "exCn": ["看一下你的日程。","我们安排了一次通话。"] }
+    ],
+    "sentenceTranslation": "我们明天再回头讨论这个项目吧。"
+  },
+  {
+    "id": "t1",
+    "scene": "travel",
+    "level": "survival",
+    "sentence": "Where can I show my [[passport]]?",
+    "dialogue": [
+      { "sp": "A", "text": "Where can I show my [[passport]]?", "translation": "我在哪里出示护照？" },
+      { "sp": "B", "text": "At the counter over there, please.", "translation": "请在那边的柜台出示。" }
+    ],
+    "keywords": [
+      { "w": "passport", "ipa": "/ˈpæspɔːrt/", "pos": "n.", "root": "pass（通过）+ port（港）", "affix": "复合词", "enDef": "an official travel document", "cnDef": "护照", "ex": ["Don’t forget your passport.","They checked my passport."], "exCn": ["别忘了你的护照。","他们检查了我的护照。"] }
+    ],
+    "sentenceTranslation": "我在哪里出示护照？"
+  },
+  {
+    "id": "t2",
+    "scene": "travel",
+    "level": "daily",
+    "sentence": "I’d like to make a [[reservation]], please.",
+    "dialogue": [
+      { "sp": "A", "text": "I’d like to make a [[reservation]], please.", "translation": "我想预约一下。" },
+      { "sp": "B", "text": "For what time and how many guests?", "translation": "请问几点？几位？" }
+    ],
+    "keywords": [
+      { "w": "reservation", "ipa": "/ˌrezərˈveɪʃn/", "pos": "n.", "root": "re-（再）+ serv（保持）", "affix": "-ation 名词", "enDef": "a booked arrangement", "cnDef": "预订；预约", "ex": ["I have a hotel reservation.","No reservation needed."], "exCn": ["我预订了酒店。","无需预约。"] }
+    ],
+    "sentenceTranslation": "我想预约一下。"
+  },
+  {
+    "id": "t3",
+    "scene": "travel",
+    "level": "native",
+    "sentence": "Is this [[luggage]] within the carry-on limit?",
+    "dialogue": [
+      { "sp": "A", "text": "Is this [[luggage]] within the carry-on limit?", "translation": "这件行李符合随身携带的规定吗？" },
+      { "sp": "B", "text": "Looks fine—just pop it on the scale.", "translation": "看起来没问题——请把它放秤上。" }
+    ],
+    "cultureTip": "英美机场 “carry-on（随身行李）” 与 “checked bag（托运）” 概念很关键；液体限 100ml/瓶是通用规则。英式也常说 “hand luggage”。",
+    "keywords": [
+      { "w": "luggage", "ipa": "/ˈlʌɡɪdʒ/", "pos": "n.", "root": "lug（拖）+ -age", "affix": "-age 名词", "enDef": "bags and suitcases", "cnDef": "行李", "ex": ["Where is the luggage?","Check your luggage in early."], "exCn": ["行李在哪里？","早点托运行李。"] }
+    ],
+    "sentenceTranslation": "这件行李符合随身携带的规定吗？"
+  },
+  {
+    "id": "dt1",
+    "scene": "dating",
+    "level": "survival",
+    "sentence": "Would you like to go on a [[date]]?",
+    "dialogue": [
+      { "sp": "A", "text": "Would you like to go on a [[date]]?", "translation": "你想去约会吗？" },
+      { "sp": "B", "text": "I’d love to! How about Saturday?", "translation": "我很乐意！周六怎么样？" }
+    ],
+    "keywords": [
+      { "w": "date", "ipa": "/deɪt/", "pos": "n./v.", "root": "拉丁 data（给定日）", "affix": "—", "enDef": "a romantic meeting; a day", "cnDef": "约会；日期", "ex": ["We went on a date.","What’s the date today?"], "exCn": ["我们去约会了。","今天几号？"] }
+    ],
+    "sentenceTranslation": "你想去约会吗？"
+  },
+  {
+    "id": "dt2",
+    "scene": "dating",
+    "level": "daily",
+    "sentence": "Let me [[introduce]] you to my friend.",
+    "dialogue": [
+      { "sp": "A", "text": "Let me [[introduce]] you to my friend.", "translation": "让我把你介绍给我的朋友。" },
+      { "sp": "B", "text": "Nice to meet you—I’ve heard a lot!", "translation": "很高兴认识你——我常听他们提起你！" }
+    ],
+    "keywords": [
+      { "w": "introduce", "ipa": "/ˌɪntrəˈdjuːs/", "pos": "v.", "root": "intro-（内）+ duce（引导）", "affix": "intro- 向内", "enDef": "to present someone to another", "cnDef": "介绍", "ex": ["Let me introduce myself.","She introduced the speaker."], "exCn": ["让我自我介绍一下。","她介绍了演讲者。"] },
+      { "w": "join", "ipa": "/dʒɔɪn/", "pos": "v.", "root": "拉丁 jungere（连接）", "affix": "—", "enDef": "to become part of", "cnDef": "加入；参加", "ex": ["Join us for dinner.","He joined the club."], "exCn": ["跟我们一起吃晚饭吧。","他加入了俱乐部。"] }
+    ],
+    "sentenceTranslation": "让我把你介绍给我的朋友。"
+  },
+  {
+    "id": "dt3",
+    "scene": "dating",
+    "level": "native",
+    "sentence": "The whole place has such a good [[vibe]]!",
+    "dialogue": [
+      { "sp": "A", "text": "The whole place has such a good [[vibe]]!", "translation": "这整个地方氛围真好！" },
+      { "sp": "B", "text": "Right? Cozy and not too loud—perfect.", "translation": "对吧？温馨又不吵——刚刚好。" }
+    ],
+    "cultureTip": "“Vibe（氛围/气场）” 来自 vibration，年轻人社交高频词，形容场所或人的感觉；正面说 “good vibes”，负面说 “bad vibes”。偏口语，正式场合换 “atmosphere”。",
+    "keywords": [
+      { "w": "vibe", "ipa": "/vaɪb/", "pos": "n. (slang)", "root": "vibration 缩写", "affix": "—", "enDef": "the mood or atmosphere", "cnDef": "（俚）氛围、气场", "ex": ["This cafe has a chill vibe.","I’m getting weird vibes."], "exCn": ["这家咖啡馆氛围很放松。","我感觉气氛有点怪。"] },
+      { "w": "awesome", "ipa": "/ˈɔːsəm/", "pos": "adj. (informal)", "root": "awe（敬畏）+ -some", "affix": "-some 充满…的", "enDef": "extremely good", "cnDef": "（口语）超棒的", "ex": ["That view is awesome.","You’re awesome, thanks!"], "exCn": ["那景色太棒了。","你太棒了，谢谢！"] }
+    ],
+    "sentenceTranslation": "这整个地方氛围真好！"
+  }
+];
+
+/* 暴露到全局，供 app.js 使用 */
+window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
+</script>
+
+<script>
+/* ============================================================
+ *  SpeakDeck · 主逻辑
+ * ============================================================ */
+(function () {
+  'use strict';
+  const { SCENES, LEVELS, IPA, CARDS } = window.SpeakDeckData;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  /* ---------------- 状态 / 持久化 ---------------- */
+  const STORE_KEY = 'speakdeck_v1';
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+  const addDays = (d, n) => {
+    const [y, m, day] = d.split('-').map(Number);
+    const t = new Date(Date.UTC(y, m - 1, day));
+    t.setUTCDate(t.getUTCDate() + n);
+    return t.toISOString().slice(0, 10);
+  };
+  const sameDay = (a, b) => a === b;
+
+  let state = load();
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return {
+      seen: {}, reviews: {}, favorites: {}, custom: [],
+      errors: [], settings: { dailyCount: 4, levelPref: 'all', speakSpeed: 'normal' },
+      dailyShown: {},
+      stats: { streak: 0, lastActive: '', days: {} },
+    };
+  }
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  /* ---------------- 工具 ---------------- */
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function allCards() { return CARDS.concat(state.custom); }
+  function getCard(id) { return allCards().find(c => c.id === id); }
+  function sceneName(id) { const s = SCENES.find(x => x.id === id); return s ? s.name : id; }
+  function levelInfo(id) { return LEVELS.find(x => x.id === id) || { name: id, color: '#999' }; }
+  function toast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#2b3245;color:#fff;padding:9px 16px;border-radius:999px;font-size:13px;z-index:99;box-shadow:0 6px 22px rgba(0,0,0,.2);';
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, 1600);
+    setTimeout(() => t.remove(), 2000);
+  }
+
+  /* ---------------- 语音合成 ---------------- */
+  let voices = [];
+  let synthReady = false;
+  let synthFailed = false;
+  let onlineTtsWarned = false;
+
+  function loadVoices() {
+    try {
+      voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+      if (voices.length > 0) synthReady = true;
+    } catch (e) {}
+  }
+  if (window.speechSynthesis) {
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+  }
+
+  function pickVoice() {
+    return voices.find(v => /en[-_]US/i.test(v.lang)) ||
+           voices.find(v => /^en/i.test(v.lang)) || null;
+  }
+
+  function beepFallback() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(440, ctx.currentTime);
+      g.gain.setValueAtTime(0.15, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.25);
+    } catch (e) {}
+  }
+
+  /* ---------------- 在线 TTS 公共辅助 ---------------- */
+  const youdaoUrl = t => 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(t) + '&type=2';
+  const baiduUrl = (t, speed) => 'https://fanyi.baidu.com/gettts?lan=en&text=' + encodeURIComponent(t) + '&spd=' + (speed === 'slow' ? 1 : 4) + '&source=web';
+
+  let ttsLoadingEl = null;
+  function showTtsLoading() {
+    if (!ttsLoadingEl) {
+      ttsLoadingEl = document.createElement('div');
+      ttsLoadingEl.className = 'tts-loading';
+      ttsLoadingEl.textContent = '🔊 发音准备中…';
+      document.body.appendChild(ttsLoadingEl);
+    }
+    ttsLoadingEl.hidden = false;
+  }
+  function hideTtsLoading() { if (ttsLoadingEl) ttsLoadingEl.hidden = true; }
+
+  let ttsWarmed = false;
+  function warmTts() {
+    if (ttsWarmed) return; ttsWarmed = true;
+    try { const a = new Audio(baiduUrl('hi', 'normal')); a.preload = 'auto'; a.load(); } catch (e) {}
+  }
+  document.addEventListener('pointerdown', warmTts, { once: true });
+
+  function speakOnline(text, opts = {}) {
+    const el = opts.el;
+    const speed = opts.speed || state.settings.speakSpeed || 'normal';
+    if (el) el.classList.add('speaking');
+    const cleanup = () => { if (el) el.classList.remove('speaking'); };
+
+    const useBaidu = /\s/.test(text) || text.length > 30 || /[.!?;，。！？；]/.test(text);
+    const sources = useBaidu
+      ? [baiduUrl(text, speed), youdaoUrl(text)]
+      : [youdaoUrl(text), baiduUrl(text, speed)];
+
+    showTtsLoading();
+    function attempt(i) {
+      if (i >= sources.length) {
+        cleanup(); hideTtsLoading();
+        toast('🔇 在线发音失败，请检查网络连接');
+        beepFallback();
+        if (opts.onerror) opts.onerror();
+        return;
+      }
+      const audio = new Audio();
+      audio.src = sources[i];
+      audio.preload = 'auto';
+      audio.onplaying = () => { hideTtsLoading(); };
+      audio.onended = () => { hideTtsLoading(); cleanup(); if (opts.onend) opts.onend(); };
+      audio.onerror = () => { attempt(i + 1); };
+      audio.load();
+      setTimeout(() => {
+        audio.play().catch(err => {
+          if (err && err.name === 'NotAllowedError') {
+            cleanup(); hideTtsLoading();
+            toast('🔇 请先点击页面任意位置激活音频');
+            beepFallback();
+            if (opts.onerror) opts.onerror();
+          } else {
+            attempt(i + 1);
+          }
+        });
+      }, 60);
+    }
+
+    attempt(0);
+  }
+
+  function speakSequenceOnline(texts, opts = {}) {
+    let i = 0;
+    const next = () => { if (i >= texts.length) return; speakOnline(texts[i++], { ...opts, onend: next }); };
+    next();
+  }
+
+
+  function speak(text, opts = {}) {
+    const speed = state.settings.speakSpeed || 'normal';
+    if (speed === 'word' && text.trim().split(/\s+/).length > 1) {
+      speakWordByWord(text, opts);
+      return;
+    }
+    if (!('speechSynthesis' in window)) {
+      if (!onlineTtsWarned) { onlineTtsWarned = true; toast('🌐 当前浏览器未开放本地语音，已切换为在线发音'); }
+      speakOnline(text, opts);
+      return;
+    }
+    try { voices = speechSynthesis.getVoices(); } catch (e) {}
+    if (voices.length > 0) synthReady = true;
+
+    if (voices.length === 0) {
+      if (!onlineTtsWarned) { onlineTtsWarned = true; toast('🌐 未检测到本地语音包，已切换为在线发音'); }
+      speakOnline(text, opts);
+      return;
+    }
+
+    if (speechSynthesis.paused) {
+      try { speechSynthesis.resume(); } catch (e) {}
+    }
+
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = opts.rate || 0.95;
+    u.pitch = opts.pitch || 1;
+    u.volume = 1;
+    const v = pickVoice(); if (v) u.voice = v;
+    if (state.settings.speakSpeed === 'slow') u.rate = 0.6;
+
+    const el = opts.el;
+    if (el) el.classList.add('speaking');
+    u.onend = () => { if (el) el.classList.remove('speaking'); };
+    u.onerror = (e) => {
+      if (el) el.classList.remove('speaking');
+      if (!synthFailed) {
+        synthFailed = true;
+        if (e.error === 'not-allowed' || e.error === 'audio-busy') {
+          toast('🔇 请先点击页面任意位置激活音频，再试');
+        } else {
+          toast('🔇 本地语音失败，尝试在线发音');
+          speakOnline(text, opts);
+          return;
+        }
+      }
+      beepFallback();
+    };
+
+    setTimeout(() => {
+      try { speechSynthesis.speak(u); } catch (e) {
+        if (el) el.classList.remove('speaking');
+        toast('🔇 本地语音无法启动，尝试在线发音');
+        speakOnline(text, opts);
+      }
+    }, 60);
+  }
+
+  function speakSequence(texts, opts = {}) {
+    const speed = state.settings.speakSpeed || 'normal';
+    if (speed === 'word' && texts.join(' ').trim().split(/\s+/).length > 1) {
+      speakWordByWord(texts.join(' '), opts);
+      return;
+    }
+    if (!('speechSynthesis' in window)) {
+      if (!onlineTtsWarned) { onlineTtsWarned = true; toast('🌐 当前浏览器未开放本地语音，已切换为在线发音'); }
+      speakSequenceOnline(texts, opts);
+      return;
+    }
+    try { voices = speechSynthesis.getVoices(); } catch (e) {}
+    if (voices.length === 0) {
+      if (!onlineTtsWarned) { onlineTtsWarned = true; toast('🌐 未检测到本地语音包，已切换为在线发音'); }
+      speakSequenceOnline(texts, opts);
+      return;
+    }
+    if (speechSynthesis.paused) { try { speechSynthesis.resume(); } catch (e) {} }
+    speechSynthesis.cancel();
+    let i = 0;
+    const next = () => {
+      if (i >= texts.length) return;
+      const u = new SpeechSynthesisUtterance(texts[i++]);
+      u.lang = 'en-US'; u.rate = opts.rate || 0.95; u.pitch = opts.pitch || 1;
+      u.volume = 1;
+      const v = pickVoice(); if (v) u.voice = v;
+      if (state.settings.speakSpeed === 'slow') u.rate = 0.6;
+      u.onend = next;
+      u.onerror = () => { next(); };
+      try { speechSynthesis.speak(u); } catch (e) {}
+    };
+    setTimeout(next, 60);
+  }
+
+    /* --------------- 逐词跟读 --------------- */
+  let wordPanelEl = null;
+  let wordPlayCtrl = null;
+  function ensureWordPanel() {
+    if (wordPanelEl) return wordPanelEl;
+    wordPanelEl = document.createElement('div');
+    wordPanelEl.id = 'wordPanel';
+    wordPanelEl.hidden = true;
+    document.body.appendChild(wordPanelEl);
+    return wordPanelEl;
+  }
+  function stopWordPlayback() {
+    if (wordPlayCtrl) { try { wordPlayCtrl.stop(); } catch (e) {} wordPlayCtrl = null; }
+    if (wordPanelEl) wordPanelEl.hidden = true;
+  }
+    function speakWordByWord(text, opts = {}) {
+    stopWordPlayback();
+    const el = opts.el;
+    if (el) el.classList.add('speaking');
+    const raw = text.split(/\s+/).filter(Boolean);
+    const words = raw.map(w => {
+      const clean = w.replace(/^[^A-Za-z']+|[^A-Za-z']+$/g, '');
+      return { display: w, play: clean || w };
+    });
+    if (words.length === 0) { if (el) el.classList.remove('speaking'); return; }
+
+    const panel = ensureWordPanel();
+    panel.innerHTML =
+      '<div class="wp-head"><span>逐词跟读 · 整段循环播放（点单词可重听）</span>' +
+      '<button class="wp-toggle" title="暂停/继续">⏸ 暂停</button>' +
+      '<button class="wp-close" title="关闭">✕</button></div>' +
+      '<div class="wp-words">' +
+      words.map((w, i) => `<button class="wp-word" data-i="${i}">${escapeHtml(w.display)}</button>`).join('') +
+      '</div>';
+    panel.hidden = false;
+    const chips = Array.from(panel.querySelectorAll('.wp-word'));
+    const toggleBtn = panel.querySelector('.wp-toggle');
+
+    if (opts.kwMap) {
+      words.forEach((w, i) => {
+        const info = opts.kwMap[w.play.toLowerCase()];
+        if (info) {
+          chips[i].classList.add('kw');
+          const ipa = info.ipa || (IPA[w.play.toLowerCase()] || '');
+          if (ipa) chips[i].insertAdjacentHTML('beforeend', `<span class="ipa">${escapeHtml(ipa)}</span>`);
+        }
+      });
+    }
+
+    let idx = 0, paused = false, curAudio = null;
+    const loop = true;
+    const audio = new Audio();
+    let stallTimer = null;
+
+    const clearActive = () => chips.forEach(c => c.classList.remove('active'));
+    const setActive = (i) => { clearActive(); if (chips[i]) chips[i].classList.add('active'); };
+
+    const clearStall = () => { if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; } };
+    const setStall = () => { clearStall(); stallTimer = setTimeout(() => { if (!paused) advance(); }, 3500); };
+
+    const advance = () => {
+      clearStall();
+      if (paused) return;
+      const n = idx + 1;
+      if (n < words.length) setTimeout(() => playWord(n), 300);
+      else if (loop) setTimeout(() => playWord(0), 900);
+    };
+
+    const playWord = (i) => {
+      if (paused) return;
+      idx = i;
+      setActive(i);
+      trySource(0);
+    };
+
+    const trySource = (srcIdx) => {
+      if (paused) return;
+      if (srcIdx >= 2) { advance(); return; }
+      audio.pause();
+      audio.src = srcIdx === 0 ? youdaoUrl(words[idx].play) : baiduUrl(words[idx].play, 'normal');
+      audio.preload = 'auto';
+      let settled = false;
+      audio.onended = () => { if (paused || settled) return; settled = true; clearStall(); advance(); };
+      audio.onerror = () => { if (paused || settled) return; settled = true; clearStall(); trySource(srcIdx + 1); };
+      audio.load();
+      clearStall();
+      setStall();
+      curAudio = audio;
+      const p = audio.play();
+      if (p && p.catch) {
+        p.catch(() => {
+          if (paused || settled) return;
+          settled = true;
+          clearStall();
+          trySource(srcIdx + 1);
+        });
+      }
+    };
+
+    const showResume = () => {
+      let h = panel.querySelector('.wp-resume');
+      if (!h) {
+        h = document.createElement('button');
+        h.className = 'wp-resume';
+        h.textContent = '▶ 继续播放整段对话';
+        h.addEventListener('click', resume);
+        panel.insertBefore(h, panel.querySelector('.wp-words'));
+      }
+      h.hidden = false;
+    };
+    const hideResume = () => { const h = panel.querySelector('.wp-resume'); if (h) h.hidden = true; };
+
+    const pause = () => {
+      paused = true;
+      audio.pause();
+      clearStall();
+      if (el) el.classList.remove('speaking');
+      if (toggleBtn) toggleBtn.textContent = '▶ 继续';
+      showResume();
+    };
+    const resume = () => {
+      if (!paused) return;
+      paused = false;
+      if (toggleBtn) toggleBtn.textContent = '⏸ 暂停';
+      hideResume();
+      if (el) el.classList.add('speaking');
+      playWord(idx);
+    };
+    const stopAll = () => {
+      paused = true;
+      audio.pause();
+      clearStall();
+      if (el) el.classList.remove('speaking');
+    };
+    wordPlayCtrl = { stop: stopAll };
+
+    if (toggleBtn) toggleBtn.addEventListener('click', () => { paused ? resume() : pause(); });
+    const closeBtn = panel.querySelector('.wp-close');
+    if (closeBtn) closeBtn.addEventListener('click', () => { stopAll(); panel.hidden = true; });
+
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const i = parseInt(chip.dataset.i, 10);
+        paused = true; idx = i;
+        audio.pause();
+        clearStall();
+        setActive(i);
+        if (el) el.classList.remove('speaking');
+        if (toggleBtn) toggleBtn.textContent = '▶ 继续';
+        showResume();
+        const w = words[i].play;
+        const a = new Audio(youdaoUrl(w));
+        a.preload = 'auto';
+        a.onerror = () => { const b = new Audio(baiduUrl(w, 'normal')); b.preload = 'auto'; b.load(); b.play().catch(() => {}); };
+        a.load(); a.play().catch(() => { const b = new Audio(baiduUrl(w, 'normal')); b.preload = 'auto'; b.load(); b.play().catch(() => {}); });
+      });
+    });
+
+    playWord(0);
+  }
+
+/* ---------------- 语音识别 ---------------- */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  function startRecognition(onResult, onError, opts = {}) {
+    if (!SR) { onError && onError('unsupported'); return null; }
+    const rec = new SR();
+    rec.lang = 'en-US'; rec.interimResults = false; rec.maxAlternatives = 1;
+    rec.onresult = (e) => { onResult(e.results[0][0].transcript); };
+    rec.onerror = (e) => { onError && onError(e.error || 'error'); };
+    rec.onstart = () => { opts.onStart && opts.onStart(); };
+    rec.onend = () => { opts.onEnd && opts.onEnd(); };
+    try { rec.start(); } catch (e) { onError && onError('start'); }
+    return rec;
+  }
+
+  /* ---------------- 渲染：重点词标记 ---------------- */
+  function renderMarked(text, card) {
+    const kwMap = {};
+    (card.keywords || []).forEach(k => { kwMap[k.w.toLowerCase()] = k; });
+    const parts = String(text).split(/(\[\[[^\]]+\]\])/g);
+    return parts.map(p => {
+      const m = p.match(/^\[\[([^\]]+)\]\]$/);
+      if (m) {
+        const w = m[1];
+        const info = kwMap[w.toLowerCase()];
+        const ipa = info ? info.ipa : (IPA[w.toLowerCase()] || '');
+        return `<span class="kw" data-word="${escapeHtml(w)}" data-card="${escapeHtml(card.id)}">` +
+          `${escapeHtml(w)}<span class="ipa">${escapeHtml(ipa)}</span>` +
+          `<button class="speak-btn" data-speak="${escapeHtml(w)}" title="发音" aria-label="发音">🔊</button></span>`;
+      }
+      return escapeHtml(p);
+    }).join('');
+  }
+
+  /* ---------------- 卡片渲染 ---------------- */
+  function cardHtml(card, mode) {
+    const lvl = levelInfo(card.level);
+    const sc = SCENES.find(s => s.id === card.scene) || { emoji: '📌', name: card.scene };
+    const starred = !!state.favorites[card.id];
+    const culture = card.cultureTip
+      ? `<div class="culture"><b>💡 文化小贴士：</b>${escapeHtml(card.cultureTip)}</div>` : '';
+    let actions = `
+      <button class="btn small" data-play="${escapeHtml(card.id)}">▶ 播放整句</button>
+      <button class="btn small ghost" data-practice="${escapeHtml(card.id)}">🎤 跟读练习</button>
+      <button class="btn small ghost" data-brush="${escapeHtml(card.id)}">📌 提前排练</button>`;
+    if (mode === 'learn') {
+      actions += `<button class="btn small ghost" data-learned="${escapeHtml(card.id)}">✓ 我学会了</button>`;
+    }
+    if (mode === 'review') {
+      actions += `<div class="rec-controls" style="margin-top:8px">
+        <span class="muted" style="font-size:12px">回顾后：</span>
+        <button class="btn small" data-recall="${escapeHtml(card.id)}" data-q="2">😎 记得</button>
+        <button class="btn small ghost" data-recall="${escapeHtml(card.id)}" data-q="1">🤔 模糊</button>
+        <button class="btn small ghost" data-recall="${escapeHtml(card.id)}" data-q="0">😵 忘了</button>
+      </div>`;
+    }
+    return `<article class="fcard" data-card-id="${escapeHtml(card.id)}">
+      <div class="badges">
+        <span class="lvl" style="background:${lvl.color}">${lvl.name}</span>
+        <span class="scene-tag">${sc.emoji} ${escapeHtml(sc.name)}</span>
+        <button class="star ${starred ? 'on' : ''}" data-star="${escapeHtml(card.id)}" title="收藏">${starred ? '★' : '☆'}</button>
+      </div>
+      <div class="sentence">${renderMarked(card.sentence, card)}</div>
+      ${card.sentenceTranslation ? `<div class="sentence-translation">${escapeHtml(card.sentenceTranslation)}</div>` : ''}
+      <div class="dialogue">
+        ${card.dialogue.map(d => `<div class="line"><span class="who">${escapeHtml(d.sp)}</span><span>${renderMarked(d.text, card)}</span>${d.translation ? `<div class="line-translation">${escapeHtml(d.translation)}</div>` : ''}</div>`).join('')}
+        <div class="dialogue-actions">
+          <button class="btn small ghost" data-play-dialog="${escapeHtml(card.id)}">🔊 播放对话</button>
+        </div>
+      </div>
+      ${culture}
+      <div class="practice-slot" data-slot="${escapeHtml(card.id)}"></div>
+      <div class="card-actions">${actions}</div>
+    </article>`;
+  }
+
+  /* ---------------- 视图：学卡片 ---------------- */
+  let currentFilter = { scene: 'all', level: 'all', q: '' };
+  let dailyOnly = false;
+  let currentView = 'learn';
+  let reviewMode = 'due', reviewScene = 'all';
+
+  function applyFilter(list) {
+    return list.filter(c => {
+      if (currentFilter.scene !== 'all' && c.scene !== currentFilter.scene) return false;
+      if (currentFilter.level !== 'all' && c.level !== currentFilter.level) return false;
+      if (currentFilter.q) {
+        const q = currentFilter.q.toLowerCase();
+        const hay = (c.sentence + ' ' + (c.keywords || []).map(k => k.w).join(' ') + ' ' + sceneName(c.scene)).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  function viewLearn() {
+    let list = allCards();
+    let title = '📚 全部卡片';
+    if (dailyOnly) {
+      const ids = state.dailyShown[todayStr()] || [];
+      list = ids.map(getCard).filter(Boolean);
+      title = `🎯 今日推荐（${list.length} 张）`;
+    } else {
+      list = applyFilter(list);
+    }
+    const c = $('#content');
+    if (!list.length) {
+      c.innerHTML = `<div class="empty"><div class="emoji">🗂️</div><p>没有符合条件的卡片。</p>${dailyOnly ? '<button class="btn primary" id="genDaily">生成今日卡片</button>' : ''}</div>`;
+      const g = $('#genDaily'); if (g) g.onclick = generateDaily;
+      return;
+    }
+    c.innerHTML = `<h2 class="section-title">${title}</h2><div class="card-grid">${list.map(x => cardHtml(x, 'learn')).join('')}</div>`;
+  }
+
+  /* ---------------- 每日推荐 / 遗忘曲线 ---------------- */
+  function generateDaily() {
+    const t = todayStr();
+    if (state.dailyShown[t] && state.dailyShown[t].length) { dailyOnly = true; viewLearn(); return; }
+    let allPool = allCards().filter(c => !state.seen[c.id]);
+    const pref = state.settings.levelPref;
+    let pool = pref === 'all' ? allPool : allPool.filter(c => c.level === pref);
+    if (pool.length < state.settings.dailyCount) pool = allPool;
+    const order = { survival: 0, daily: 1, native: 2 };
+    pool.sort((a, b) => (order[a.level] || 1) - (order[b.level] || 1));
+    const n = Math.min(state.settings.dailyCount, pool.length);
+    const ids = pool.slice(0, n).map(c => c.id);
+    ids.forEach(id => { state.seen[id] = true; addToReview(id, true); });
+    state.dailyShown[t] = ids;
+    save();
+    dailyOnly = true;
+    toast(`已为你生成 ${ids.length} 张今日新卡 🎉`);
+    viewLearn();
+    updateDailyProgress();
+  }
+
+  function addToReview(cardId, initial) {
+    if (!state.reviews[cardId]) {
+      state.reviews[cardId] = { ease: 2.5, due: addDays(todayStr(), 1), reps: 0, last: '' };
+    }
+  }
+  function reviewCard(cardId, quality) {
+    const r = state.reviews[cardId] || { ease: 2.5, due: todayStr(), reps: 0 };
+    r.reps = quality < 2 ? 0 : r.reps + 1;
+    let interval;
+    if (quality < 2) interval = 1;
+    else if (r.reps === 1) interval = 1;
+    else if (r.reps === 2) interval = 3;
+    else interval = Math.round((state.reviews[cardId] ? (parseInt((state.reviews[cardId]._last || 1))) : 1) * r.ease) || 4;
+    r.ease = Math.max(1.3, Math.min(3, r.ease + (quality >= 2 ? 0.1 : -0.2)));
+    r.due = addDays(todayStr(), interval);
+    r._last = interval; r.last = todayStr();
+    state.reviews[cardId] = r;
+    save();
+    const msg = quality >= 2 ? '👍 记得，已延长复习间隔' : (quality === 1 ? '🤔 稍后多复习一次' : '😵 已安排明天重练');
+    toast(msg);
+    viewReview();
+  }
+
+  function viewReview() {
+    const t = todayStr();
+    const all = Object.keys(state.reviews).filter(id => getCard(id));
+    const dueIds = all.filter(id => state.reviews[id].due <= t);
+    let list = (reviewMode === 'due' ? dueIds : all)
+      .filter(id => reviewScene === 'all' || getCard(id).scene === reviewScene)
+      .map(id => ({ id, ...state.reviews[id] }))
+      .sort((a, b) => a.ease - b.ease);
+    const c = $('#content');
+    const modeChips = [
+      { k: 'due', label: `🔁 待复习 (${dueIds.length})` },
+      { k: 'all', label: `📚 复习库全部 (${all.length})` },
+    ].map(m => `<button class="chip ${reviewMode === m.k ? 'active' : ''}" data-rmode="${m.k}">${m.label}</button>`).join('');
+    const sceneChips = `<button class="chip ${reviewScene === 'all' ? 'active' : ''}" data-rscene="all">🌐 全部场景</button>` +
+      SCENES.map(s => `<button class="chip ${reviewScene === s.id ? 'active' : ''}" data-rscene="${s.id}">${s.emoji} ${s.name}</button>`).join('');
+    if (!list.length) {
+      c.innerHTML = `<h2 class="section-title">🔁 复习</h2>
+        <div class="muted" style="margin:8px 0 10px">模式：${modeChips} <div style="margin-top:8px">${sceneChips}</div></div>
+        <div class="empty"><div class="emoji">✅</div><p>${reviewMode === 'due' ? '今天没有待复习的卡片，去学点新内容吧！' : '复习库还是空的，先去学几张卡片。'}</p><button class="btn primary" data-go="learn">去学卡片</button></div>`;
+      return;
+    }
+    c.innerHTML = `<h2 class="section-title">🔁 复习控制台（${list.length} 张 · 越不熟越靠前）</h2>
+      <div class="muted" style="margin:8px 0 10px">${modeChips}<div style="margin-top:8px">${sceneChips}</div></div>
+      <div class="muted" style="margin-bottom:10px">点卡片里的「记得 / 模糊 / 忘了」记录掌握程度，系统据此调整下次出现频率；也可点「📌 提前排练」随时把某张卡加入今日复习。</div>
+      <div class="card-grid">${list.map(d => cardHtml(getCard(d.id), 'review')).join('')}</div>`;
+  }
+  function brushUp(cardId) {
+    if (!getCard(cardId)) return;
+    if (!state.reviews[cardId]) state.reviews[cardId] = { ease: 2.5, due: todayStr(), reps: 0, last: '' };
+    state.reviews[cardId].due = todayStr();
+    save();
+    toast('📌 已加入今日复习');
+    if (currentView === 'review') viewReview();
+  }
+
+  /* ---------------- 收藏 ---------------- */
+  function viewFav() {
+    const list = allCards().filter(c => state.favorites[c.id]);
+    const c = $('#content');
+    if (!list.length) {
+      c.innerHTML = `<div class="empty"><div class="emoji">⭐</div><p>还没有收藏。点卡片右上角的 ☆ 即可收藏。</p></div>`;
+      return;
+    }
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <h2 class="section-title" style="margin:0">⭐ 我的收藏（${list.length}）</h2>
+        <button class="btn primary" id="exportBtn">🖨️ 导出 / 打印收藏</button>
+      </div>
+      <div class="card-grid">${list.map(x => cardHtml(x, 'fav')).join('')}</div>`;
+    $('#exportBtn').onclick = exportFav;
+  }
+
+  /* ---------------- 错句本 ---------------- */
+  function viewErrors() {
+    const list = state.errors.slice().reverse();
+    const c = $('#content');
+    if (!list.length) {
+      c.innerHTML = `<div class="empty"><div class="emoji">📕</div><p>错句本空空如也，继续保持！</p></div>`;
+      return;
+    }
+    const solved = state.errors.filter(e => e.solved).length;
+    c.innerHTML = `<h2 class="section-title">📕 错句本（${list.length} 条 · 已攻克 ${solved}）</h2>
+      <div style="margin-bottom:12px">${list.map(e => `
+        <div class="err-item">
+          <div class="meta"><span>📅 ${e.date} · ${escapeHtml(sceneName(e.scene))} · 来源：${escapeHtml(e.source)}</span>
+            <button class="btn small ghost" data-solve="${e.id}">${e.solved ? '↩ 恢复' : '✓ 标记攻克'}</button></div>
+          <div>${e.wrong ? `<span class="wrong">${escapeHtml(e.wrong)}</span> → ` : ''}<span class="right">${escapeHtml(e.right)}</span></div>
+          <div class="reason">原因：${escapeHtml(e.reason)}</div>
+        </div>`).join('')}</div>`;
+  }
+  function addError(e) {
+    e.id = 'e_' + Date.now() + Math.floor(Math.random() * 1000);
+    e.date = todayStr();
+    state.errors.push(e); save();
+  }
+
+  /* ---------------- 周报 ---------------- */
+  function viewReport() {
+    const t = todayStr();
+    const days = [];
+    for (let i = 6; i >= 0; i--) days.push(addDays(t, -i));
+    let learned = 0, favCount = Object.keys(state.favorites).length;
+    let accSum = 0, accN = 0;
+    const bars = days.map(d => {
+      const s = state.stats.days[d] || { learned: 0, accSum: 0, accCount: 0 };
+      learned += s.learned || 0;
+      if (s.accCount) { accSum += s.accSum; accN += s.accCount; }
+      const acc = s.accCount ? Math.round(s.accSum / s.accCount) : null;
+      return { d, learned: s.learned || 0, acc };
+    });
+    const maxL = Math.max(1, ...bars.map(b => b.learned));
+    const totalErr = state.errors.length;
+    const solvedErr = state.errors.filter(e => e.solved).length;
+    const errPct = totalErr ? Math.round(solvedErr / totalErr * 100) : 100;
+    const avgAcc = accN ? Math.round(accSum / accN) : null;
+
+    const c = $('#content');
+    c.innerHTML = `<h2 class="section-title">📊 本周学习周报（${days[0].slice(5)} ~ ${days[6].slice(5)}）</h2>
+      <div class="report-grid">
+        <div class="stat-card"><div class="num">${learned}</div><div class="lbl">本周学习卡片数</div></div>
+        <div class="stat-card"><div class="num">${avgAcc == null ? '—' : avgAcc + '%'}</div><div class="lbl">平均发音准确率</div></div>
+        <div class="stat-card"><div class="num">${favCount}</div><div class="lbl">累计收藏</div></div>
+        <div class="stat-card"><div class="num">${state.stats.streak}</div><div class="lbl">连续打卡天数</div></div>
+        <div class="stat-card"><div class="num">${errPct}%</div><div class="lbl">错句本攻克进度</div></div>
+      </div>
+      <div class="chart-box">
+        <h3>📅 每日学习卡片数</h3>
+        <div class="bar-chart">${bars.map(b => `<div class="bar-col">
+          <div class="bval">${b.learned}</div>
+          <div class="bar" style="height:${Math.round(b.learned / maxL * 100)}%"></div>
+          <div class="blbl">${b.d.slice(5)}</div></div>`).join('')}</div>
+      </div>
+      <div class="chart-box">
+        <h3>🎯 每日发音准确率</h3>
+        <div class="bar-chart">${bars.map(b => `<div class="bar-col">
+          <div class="bval">${b.acc == null ? '—' : b.acc + '%'}</div>
+          <div class="bar" style="height:${b.acc == null ? 2 : b.acc}%;background:linear-gradient(180deg,#7ee0b8,#2bb673)"></div>
+          <div class="blbl">${b.d.slice(5)}</div></div>`).join('')}</div>
+        <div class="gnote">提示：多使用「跟读练习」并尽量模仿原声，准确率会随练习次数稳步上升。</div>
+      </div>`;
+  }
+
+  /* ---------------- 词详情弹窗 ---------------- */
+  function openWord(word, cardId) {
+    const card = getCard(cardId);
+    if (!card) return;
+    const info = (card.keywords || []).find(k => k.w.toLowerCase() === word.toLowerCase());
+    const ipa = info ? info.ipa : (IPA[word.toLowerCase()] || '（暂无音标）');
+    let body;
+    if (info) {
+      body = `<div class="word-head">
+          <span class="w">${escapeHtml(info.w)}</span>
+          <span class="ipa">${escapeHtml(info.ipa)}</span>
+          <span class="pos">${escapeHtml(info.pos)}</span>
+        </div>
+        <div class="word-row"><span class="k">词根</span><span class="v">${escapeHtml(info.root)}</span></div>
+        <div class="word-row"><span class="k">词缀</span><span class="v">${escapeHtml(info.affix)}</span></div>
+        <div class="word-row"><span class="k">英文释义</span><span class="v">${escapeHtml(info.enDef)}</span></div>
+        <div class="word-row"><span class="k">中文释义</span><span class="v">${escapeHtml(info.cnDef)}</span></div>
+        <div class="word-ex"><b>额外例句：</b><ul>${(info.ex || []).map((e, i) => `<li>${escapeHtml(e)}${(info.exCn || [])[i] ? `<div class="ex-cn">${escapeHtml((info.exCn || [])[i])}</div>` : ''}</li>`).join('')}</ul></div>
+        <button class="btn block word-speak" id="wordSpeak">🔊 播放发音</button>`;
+    } else {
+      body = `<div class="word-head"><span class="w">${escapeHtml(word)}</span><span class="ipa">${escapeHtml(ipa)}</span></div>
+        <div class="gnote">这是你标记或系统附带的重点词，暂无详细词根词性数据。可点下方按钮听发音。</div>
+        <button class="btn block word-speak" id="wordSpeak">🔊 播放发音</button>`;
+    }
+    $('#wordModalBody').innerHTML = body;
+    $('#wordModal').hidden = false;
+    const sp = $('#wordSpeak'); if (sp) sp.onclick = () => speak(word);
+  }
+
+  /* ---------------- 语法速查 ---------------- */
+  const GRAMMAR = {
+    tense: { title: '常用时态对比', html: `<table class="gtable">
+        <tr><th>时态</th><th>结构</th><th>例句</th></tr>
+        <tr><td>一般现在</td><td>主语 + 动词原形/三单</td><td>I <b>work</b>. / He <b>works</b>.</td></tr>
+        <tr><td>现在进行</td><td>am/is/are + 动词-ing</td><td>She <b>is reading</b> now.</td></tr>
+        <tr><td>一般过去</td><td>动词过去式</td><td>We <b>went</b> home.</td></tr>
+        <tr><td>现在完成</td><td>have/has + 过去分词</td><td>I <b>have seen</b> it.</td></tr>
+        <tr><td>一般将来</td><td>will / be going to + 动原</td><td>He <b>will come</b>.</td></tr>
+      </table><div class="gnote">口语高频：一般现在表习惯，现在进行表此刻，现在完成表“经历/影响”。</div>` },
+    prep: { title: '常见介词搭配', html: `<table class="gtable">
+        <tr><th>介词</th><th>常见搭配 / 用法</th></tr>
+        <tr><td>in</td><td>in the morning, in July, in London（大范围、时间段）</td></tr>
+        <tr><td>on</td><td>on Monday, on the table, on time（具体日/表面）</td></tr>
+        <tr><td>at</td><td>at 3pm, at home, at the station（时刻/小地点）</td></tr>
+        <tr><td>for</td><td>for me, for two days（对象/时长）</td></tr>
+        <tr><td>with</td><td>with you, with sugar（伴随）</td></tr>
+        <tr><td>by</td><td>by bus, by myself, by Friday（方式/截止）</td></tr>
+      </table><div class="gnote">记忆口诀：in 大 on 小 at 点；for 时长 with 伴。</div>` },
+    pattern: { title: '高频句型拆解', html: `<table class="gtable">
+        <tr><th>句型</th><th>拆解</th><th>例</th></tr>
+        <tr><td>Could you + 动原?</td><td>礼貌请求（比 can 更客气）</td><td>Could you help me?</td></tr>
+        <tr><td>I'd like to + 动原</td><td>委婉表达意愿</td><td>I'd like to order.</td></tr>
+        <tr><td>How about + 名词/doing?</td><td>提建议</td><td>How about coffee?</td></tr>
+        <tr><td>Why don't we + 动原?</td><td>共同行动建议</td><td>Why don't we go?</td></tr>
+        <tr><td>Would you mind + doing?</td><td>极礼貌请求</td><td>Would you mind waiting?</td></tr>
+      </table>` },
+    article: { title: '冠词使用规则', html: `<table class="gtable">
+        <tr><th>冠词</th><th>用法</th><th>例</th></tr>
+        <tr><td>a / an</td><td>泛指单数可数；an 用于元音音素开头</td><td>a book, an apple</td></tr>
+        <tr><td>the</td><td>特指双方已知 / 独一无二事物</td><td>the sun, the bill</td></tr>
+        <tr><td>零冠词</td><td>复数/不可数泛指、三餐、语言</td><td>I like coffee.</td></tr>
+      </table><div class="gnote">易错：说语言/三餐前通常无冠词（have lunch, speak English）。</div>` },
+  };
+  function openGrammar() {
+    const tabs = Object.keys(GRAMMAR);
+    $('#grammarTabs').innerHTML = tabs.map((k, i) =>
+      `<button class="chip ${i === 0 ? 'active' : ''}" data-gtab="${k}">${GRAMMAR[k].title}</button>`).join('');
+    $('#grammarBody').innerHTML = GRAMMAR[tabs[0]].html;
+    $('#grammarModal').hidden = false;
+  }
+
+  /* ---------------- 跟读练习 / 波形对比 ---------------- */
+  let activeStream = null;
+  function closeRecorder() {
+    if (activeStream) { activeStream.getTracks().forEach(t => t.stop()); activeStream = null; }
+    speechSynthesis.cancel();
+  }
+  function pseudoWave(text) {
+    const arr = []; const seed = text.length ? text.charCodeAt(0) : 7;
+    for (let i = 0; i < 60; i++) {
+      const x = (Math.sin(i * 0.5 + seed) + Math.sin(i * 0.17 + seed * 2)) / 2;
+      arr.push(Math.abs(x) * (0.4 + 0.6 * Math.abs(Math.sin(i * 0.3))));
+    }
+    return arr;
+  }
+  function drawWave(canvas, data, color) {
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width = canvas.clientWidth || 300;
+    const h = canvas.height = 70;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = color;
+    const n = data.length; const bw = w / n;
+    data.forEach((v, i) => {
+      const bh = Math.max(2, v * h * 0.9);
+      ctx.fillRect(i * bw, (h - bh) / 2, Math.max(1, bw - 1), bh);
+    });
+  }
+  function wordAccuracy(target, transcript) {
+    const tgt = target.toLowerCase().replace(/[^a-z\s']/g, '').split(/\s+/).filter(Boolean);
+    const got = transcript.toLowerCase().replace(/[^a-z\s']/g, '').split(/\s+/).filter(Boolean);
+    let hit = 0; const miss = [];
+    tgt.forEach((w, i) => {
+      if (got[i] === w) hit++;
+      else miss.push(w);
+    });
+    const acc = tgt.length ? Math.round(hit / tgt.length * 100) : 0;
+    return { acc, miss, tgt };
+  }
+  function openRecorder(slot, card) {
+    closeRecorder();
+    const target = card.sentence.replace(/\[\[|\]\]/g, '');
+    slot.innerHTML = `<div class="recorder">
+      <div class="wave-wrap">
+        <div class="wave-box"><div class="cap">🎯 原声参考波形</div><canvas class="wave" id="refWave"></canvas></div>
+        <div class="wave-box"><div class="cap">🎙️ 我的录音波形</div><canvas class="wave" id="myWave"></canvas></div>
+      </div>
+      <div class="rec-controls">
+        <span class="rec-dot" id="recDot"></span>
+        <button class="btn small primary" id="recBtn">● 开始录音</button>
+        <button class="btn small" id="playRef">▶ 听原声</button>
+        <span class="accuracy-ring" id="accRing"></span>
+      </div>
+      <div class="rec-result" id="recResult"></div>
+    </div>`;
+    drawWave($('#refWave', slot), pseudoWave(target), '#9fb4d8');
+    drawWave($('#myWave', slot), new Array(60).fill(0), '#ff9e80');
+
+    const mySamples = [];
+    let mediaRecorder, analyser, rafId, audioCtx, source, recData = [], recognizing = false, recog = null;
+
+    $('#playRef', slot).onclick = () => speak(target, { rate: 0.9 });
+
+    $('#recBtn', slot).onclick = async () => {
+      if (!recognizing) {
+        if (!SR) { toast('当前浏览器不支持语音识别（可用 Chrome/Edge）'); return; }
+        try {
+          activeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (e) { toast('无法访问麦克风'); return; }
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        source = audioCtx.createMediaStreamSource(activeStream);
+        analyser = audioCtx.createAnalyser(); analyser.fftSize = 256;
+        source.connect(analyser);
+        mediaRecorder = new MediaRecorder(activeStream);
+        mediaRecorder.ondataavailable = e => recData.push(e.data);
+        mediaRecorder.start();
+        recognizing = true;
+        $('#recBtn', slot).textContent = '■ 停止并分析';
+        $('#recDot', slot).classList.add('live');
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+        const tick = () => {
+          analyser.getByteTimeDomainData(buf);
+          let max = 0; for (let i = 0; i < buf.length; i++) { const v = Math.abs(buf[i] - 128) / 128; if (v > max) max = v; }
+          mySamples.push(max);
+          if (mySamples.length > 60) mySamples.shift();
+          drawWave($('#myWave', slot), mySamples.slice(), '#ff9e80');
+          rafId = requestAnimationFrame(tick);
+        };
+        tick();
+        recog = startRecognition(
+          (transcript) => { onDone(transcript); },
+          (err) => { if (err === 'unsupported') toast('浏览器不支持语音识别'); }
+        );
+      } else {
+        try { mediaRecorder.stop(); } catch (e) {}
+        if (recog) try { recog.stop(); } catch (e) {}
+        cancelAnimationFrame(rafId);
+        $('#recDot', slot).classList.remove('live');
+        $('#recBtn', slot).textContent = '● 开始录音';
+        recognizing = false;
+        if (activeStream) { activeStream.getTracks().forEach(t => t.stop()); activeStream = null; }
+        setTimeout(() => { if (!$('#recResult', slot).innerHTML) toast('没检测到语音，请重试'); }, 400);
+      }
+    };
+
+    function onDone(transcript) {
+      const { acc, miss } = wordAccuracy(target, transcript);
+      $('#accRing', slot).innerHTML = `准确率 <b style="color:${acc >= 70 ? 'var(--good)' : 'var(--bad)'}">${acc}%</b>`;
+      const tgtHtml = target.split(/\s+/).map((w, i) =>
+        (transcript.toLowerCase().replace(/[^a-z\s']/g, '').split(/\s+/)[i] === w.toLowerCase())
+          ? `<span class="ok">${escapeHtml(w)}</span>` : `<span class="miss">${escapeHtml(w)}</span>`).join(' ');
+      let sug = '';
+      if (acc >= 85) sug = '🎉 非常接近原声，语调与用词都很到位！';
+      else if (acc >= 60) sug = `继续打磨：注意 ${miss.slice(0, 3).join(', ')} 的发音与重音。`;
+      else sug = `多听几遍原声，重点练：${miss.slice(0, 4).join(', ')}。可放慢语速、夸张口型。`;
+      $('#recResult', slot).innerHTML =
+        `<div><b>你说：</b>${escapeHtml(transcript)}</div>
+         <div style="margin-top:4px"><b>逐词对比：</b>${tgtHtml}</div>
+         <div class="suggestions">${sug}</div>`;
+      recordAccuracy(acc);
+      if (acc < 55) {
+        addError({ scene: card.scene, source: '跟读练习', wrong: transcript, right: target, reason: `发音准确率仅 ${acc}%，重点词未读准：${miss.join(', ')}` });
+        toast('已加入错句本 📕');
+      }
+    }
+  }
+  function recordAccuracy(acc) {
+    const t = todayStr();
+    const s = state.stats.days[t] || { learned: 0, accSum: 0, accCount: 0 };
+    s.accSum += acc; s.accCount += 1;
+    state.stats.days[t] = s; save();
+  }
+
+  /* ---------------- AI 陪练 ---------------- */
+  let aiState = null;
+  function openAI() {
+    $('#aiChat').innerHTML = '';
+    $('#aiInputBar').style.display = 'none';
+    const scenes = SCENES.filter(s => allCards().some(c => c.scene === s.id));
+    $('#aiScenePick').innerHTML = '<div class="muted" style="margin-bottom:6px">选择一个场景，AI 会用今天学到的表达带你模拟对话：</div>' +
+      scenes.map(s => `<button class="chip" data-aiscene="${s.id}">${s.emoji} ${s.name}</button>`).join('');
+    $('#aiModal').hidden = false;
+    aiState = null;
+  }
+  function startAIScene(sceneId) {
+    const cards = allCards().filter(c => c.scene === sceneId);
+    const card = cards[Math.floor(Math.random() * cards.length)];
+    aiState = { sceneId, card, turn: 0, turns: 0, kwHits: 0, errs: 0 };
+    $('#aiScenePick').innerHTML = `<div class="muted">场景：<b>${sceneName(sceneId)}</b> · 目标表达：<i>${escapeHtml(card.sentence.replace(/\[\[|\]\]/g, ''))}</i></div>`;
+    $('#aiInputBar').style.display = 'flex';
+    $('#aiChat').innerHTML = '';
+    aiSay(`Hi! Let's practice ${sceneName(sceneId)}. Imagine we're in this situation:`, 'sys');
+    setTimeout(() => aiSay(card.dialogue[0].text.replace(/\[\[|\]\]/g, ''), 'ai'), 600);
+    setTimeout(() => {
+      aiSay(`Now you try! Can you say: “${card.sentence.replace(/\[\[|\]\]/g, '')}”`, 'ai');
+      const h = $('#aiHint'); if (h) h.hidden = false;
+    }, 1400);
+  }
+  function aiSay(text, who) {
+    const cls = who === 'me' ? 'me' : (who === 'sys' ? 'sys' : 'ai');
+    const b = document.createElement('div');
+    b.className = 'bubble ' + cls;
+    b.textContent = text;
+    $('#aiChat').appendChild(b);
+    $('#aiChat').scrollTop = $('#aiChat').scrollHeight;
+    if (who === 'ai') speak(text, { rate: 0.95 });
+  }
+  function aiUser(text) {
+    aiSay(text, 'me');
+    aiState.turns += 1;
+    const { card, turn } = aiState;
+    const kws = (card.keywords || []).map(k => k.w.toLowerCase());
+    const used = kws.some(k => text.toLowerCase().includes(k));
+    if (used) aiState.kwHits += 1;
+    let fb = '';
+    if (turn === 0) {
+      if (used) { fb = `Great! You used “${kws.find(k => text.toLowerCase().includes(k))}” perfectly. `; }
+      else { fb = `Nice try! A more natural way: “${card.sentence.replace(/\[\[|\]\]/g, '')}”. `; aiState.errs += 1; addError({ scene: card.scene, source: 'AI陪练', wrong: text, right: card.sentence.replace(/\[\[|\]\]/g, ''), reason: '未使用目标重点词/句型' }); }
+      aiState.turn = 1;
+      setTimeout(() => aiSay(card.dialogue[1].text.replace(/\[\[|\]\]/g, ''), 'ai'), 700);
+      setTimeout(() => aiSay(`Now ask me something back, or tell me your opinion!`, 'ai'), 1600);
+    } else {
+      fb = used ? `Good, you're getting the hang of it! ` : `Keep practicing the key word “${kws[0] || ''}”. `;
+      aiState.turn = 2;
+      setTimeout(() => endAISession(fb), 800);
+    }
+  }
+  function endAISession(extra) {
+    const { card, turns, kwHits, errs } = aiState;
+    const tN = Math.max(turns, 1);
+    const usage = kwHits / tN;
+    let score = Math.round(usage * 70 + Math.min(turns, 3) / 3 * 30 - errs * 12);
+    score = Math.max(0, Math.min(100, score));
+    const advice = score >= 80 ? '沟通很顺，继续保持！' : score >= 55 ? '基本能交流，重点词再多练熟些。' : '还不太顺，多跟读目标句、把重点词用对。';
+    const kws = (card.keywords || []).map(k => k.w).join(', ');
+    aiSay(`📋 反馈小结：${extra || ''}本次目标表达「${card.sentence.replace(/\[\[|\]\]/g, '')}」重点词：${kws}。多用、多听原声，口语会越来越顺！`, 'sys');
+    aiSay(`🎯 本次沟通顺畅度：${score} 分 — ${advice}`, 'sys');
+    $('#aiInputBar').style.display = 'none';
+    const h = $('#aiHint'); if (h) h.hidden = true;
+  }
+
+  /* ---------------- 自定义卡片 ---------------- */
+  function viewCustom() {
+    const c = $('#content');
+    c.innerHTML = `<h2 class="section-title">➕ 自定义卡片</h2>
+      <div class="muted" style="margin-bottom:12px">录入短句与对话，用 <code>[[单词]]</code> 标记重点词，系统自动匹配音标与发音。</div>
+      <div class="form-grid" style="max-width:640px">
+        <div class="field"><label>场景</label><select id="cfScene">${SCENES.map(s => `<option value="${s.id}">${s.emoji} ${s.name}</option>`).join('')}</select></div>
+        <div class="field"><label>难度</label><select id="cfLevel">${LEVELS.map(l => `<option value="${l.id}">${l.name}</option>`).join('')}</select></div>
+        <div class="field"><label>实用短句（用 [[ ]] 标记重点词）</label><textarea id="cfSentence" placeholder="如：Could you [[recommend]] something local?"></textarea></div>
+        <div class="field"><label>对话 A</label><textarea id="cfA" placeholder="A: Could you recommend something local?"></textarea></div>
+        <div class="field"><label>对话 B</label><textarea id="cfB" placeholder="B: Sure, the beef noodles are great!"></textarea></div>
+        <div class="field"><label>文化小贴士（可选）</label><textarea id="cfCulture" placeholder="如：这句话在正式场合不适合用"></textarea></div>
+        <div class="field"><label>重点词（逗号分隔，自动匹配音标）</label><input id="cfWords" placeholder="recommend, local" /></div>
+        <button class="btn primary block" id="cfSave">💾 保存卡片</button>
+      </div>
+      <div id="cfList" style="margin-top:20px"></div>`;
+    renderCustomList();
+    $('#cfSave').onclick = saveCustom;
+  }
+  function renderCustomList() {
+    const box = $('#cfList'); if (!box) return;
+    if (!state.custom.length) { box.innerHTML = '<div class="muted">还没有自定义卡片。</div>'; return; }
+    box.innerHTML = '<h3 style="font-size:15px">已创建的卡片</h3>' + state.custom.map(c =>
+      `<div class="err-item"><div class="meta"><span>${escapeHtml(sceneName(c.scene))} · ${levelInfo(c.level).name}</span>
+        <button class="btn small ghost" data-delfav="${c.id}">🗑 删除</button></div>
+      <div class="sentence" style="font-size:16px">${renderMarked(c.sentence, c)}</div></div>`).join('');
+  }
+  function saveCustom() {
+    const sentence = $('#cfSentence').value.trim();
+    if (!sentence) { toast('请填写实用短句'); return; }
+    const wordsRaw = $('#cfWords').value;
+    const wordList = wordsRaw.split(/[,，]/).map(w => w.trim()).filter(Boolean);
+    const keywords = wordList.map(w => {
+      const ipa = IPA[w.toLowerCase()] || '';
+      return { w, ipa, pos: ipa ? '—' : '（待补充）', root: '—', affix: '—', enDef: '—', cnDef: '（系统自动匹配音标）', ex: [] };
+    });
+    const card = {
+      id: 'c_' + Date.now(),
+      scene: $('#cfScene').value, level: $('#cfLevel').value,
+      sentence,
+      dialogue: [
+        { sp: 'A', text: $('#cfA').value.trim() || sentence },
+        { sp: 'B', text: $('#cfB').value.trim() || '...' },
+      ],
+      cultureTip: $('#cfCulture').value.trim() || '',
+      keywords,
+      custom: true,
+    };
+    state.custom.push(card); save();
+    toast('✅ 自定义卡片已保存');
+    $('#cfSentence').value = $('#cfA').value = $('#cfB').value = $('#cfCulture').value = $('#cfWords').value = '';
+    renderCustomList();
+  }
+
+  /* ---------------- 导出 / 打印收藏 ---------------- */
+  function exportFav() {
+    const list = allCards().filter(c => state.favorites[c.id]);
+    if (!list.length) { toast('还没有收藏'); return; }
+    let html = `<div id="printArea"><h1 style="text-align:center">SpeakDeck · 我的收藏清单</h1>
+      <p style="text-align:center;color:#888">导出日期：${todayStr()}</p>`;
+    list.forEach(c => {
+      html += `<div class="pcard">
+        <div><b>${escapeHtml(c.sentence.replace(/\[\[|\]\]/g, ''))}</b> <span style="color:#999">[${escapeHtml(sceneName(c.scene))}·${levelInfo(c.level).name}]</span></div>
+        <div style="margin:4px 0">${c.dialogue.map(d => `<div>${d.sp}: ${escapeHtml(d.text.replace(/\[\[|\]\]/g, ''))}</div>`).join('')}</div>`;
+      if (c.cultureTip) html += `<div style="color:#b9801e;font-size:13px">💡 ${escapeHtml(c.cultureTip)}</div>`;
+      const kws = (c.keywords || []).map(k => `<span class="pkw">${escapeHtml(k.w)}</span> ${escapeHtml(k.ipa)} ${escapeHtml(k.cnDef)}`).join(' ｜ ');
+      if (kws) html += `<div style="margin-top:4px;font-size:13px">${kws}</div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+    const w = window.open('', '_blank');
+    w.document.write(`<html><head><meta charset="utf-8"><title>SpeakDeck 收藏</title>
+      <style>body{font-family:"PingFang SC",sans-serif;padding:24px;color:#222}
+      .pcard{border:1px solid #ccc;border-radius:8px;padding:10px;margin-bottom:10px}
+      .pkw{color:#b3563c;font-weight:700}</style></head><body>${html}
+      <scr`+`ipt>window.onload=function(){setTimeout(function(){window.print()},300)}<\/scr`+`ipt></body></html>`);
+    w.document.close();
+  }
+
+  /* ---------------- 每日进度 / 打卡 ---------------- */
+  function updateDailyProgress() {
+    const t = todayStr();
+    const total = state.settings.dailyCount;
+    const learned = (state.stats.days[t] && state.stats.days[t].learned) || 0;
+    $('#dpLabel').textContent = `今日新卡 ${learned} / ${total}`;
+    $('#dpFill').style.width = Math.min(100, Math.round(learned / total * 100)) + '%';
+    $('#dpDate').textContent = t;
+    $('#streakDays').textContent = state.stats.streak;
+  }
+  function markLearned(cardId) {
+    const t = todayStr();
+    const s = state.stats.days[t] || { learned: 0, accSum: 0, accCount: 0 };
+    s.learned += 1; state.stats.days[t] = s;
+    addToReview(cardId, false);
+    save(); updateDailyProgress();
+    toast('已记录学习 ✅');
+    if (dailyOnly) viewLearn();
+  }
+  function updateStreak() {
+    const t = todayStr();
+    if (state.stats.lastActive === t) return;
+    if (state.stats.lastActive === addDays(t, -1)) state.stats.streak += 1;
+    else state.stats.streak = 1;
+    state.stats.lastActive = t;
+    save();
+  }
+
+  /* ---------------- 筛选条渲染 ---------------- */
+  function renderFilters() {
+    $('#sceneFilter').innerHTML = `<button class="chip ${currentFilter.scene === 'all' ? 'active' : ''}" data-scene="all">🌐 全部</button>` +
+      SCENES.map(s => `<button class="chip ${currentFilter.scene === s.id ? 'active' : ''}" data-scene="${s.id}">${s.emoji} ${s.name}</button>`).join('');
+    $('#levelFilter').innerHTML = `<button class="chip ${currentFilter.level === 'all' ? 'active' : ''}" data-level="all">全部难度</button>` +
+      LEVELS.map(l => `<button class="chip ${currentFilter.level === l.id ? 'active' : ''}" data-level="${l.id}"><span class="dot" style="background:${l.color}"></span>${l.name}</button>`).join('');
+  }
+
+  /* ---------------- 导航 / 事件 ---------------- */
+  function switchView(v) {
+    stopWordPlayback();
+    dailyOnly = false;
+    currentView = v;
+    $$('.navitem').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+    $$('.mobitem').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+    $('#filterBar').style.display = (v === 'learn') ? 'flex' : 'none';
+    if (v === 'learn') viewLearn();
+    else if (v === 'review') viewReview();
+    else if (v === 'fav') viewFav();
+    else if (v === 'errors') viewErrors();
+    else if (v === 'report') viewReport();
+    else if (v === 'custom') viewCustom();
+    window.scrollTo({ top: 0 });
+  }
+
+  function bindEvents() {
+    $('#mainnav').addEventListener('click', e => {
+      const b = e.target.closest('.navitem'); if (b) switchView(b.dataset.view);
+    });
+    $('#mobnav').addEventListener('click', e => {
+      const b = e.target.closest('.mobitem'); if (b) switchView(b.dataset.view);
+    });
+    const speedSeg = $('#speedSeg');
+    if (speedSeg) {
+      speedSeg.addEventListener('click', e => {
+        const b = e.target.closest('.segbtn'); if (!b) return;
+        state.settings.speakSpeed = b.dataset.speed;
+        save();
+        speedSeg.querySelectorAll('.segbtn').forEach(x => x.classList.toggle('active', x === b));
+        const label = { normal: '正常语速', slow: '慢速模式', word: '逐词跟读' }[b.dataset.speed];
+        toast('🔊 已切换为' + label);
+      });
+    }
+    $('#grammarBtn').onclick = openGrammar;
+    $('#aiBtn').onclick = openAI;
+    $('#dailyBtn').onclick = () => { switchView('learn'); generateDaily(); };
+
+    $('#sceneFilter').addEventListener('click', e => {
+      const b = e.target.closest('[data-scene]'); if (!b) return;
+      currentFilter.scene = b.dataset.scene; dailyOnly = false; renderFilters(); viewLearn();
+    });
+    $('#levelFilter').addEventListener('click', e => {
+      const b = e.target.closest('[data-level]'); if (!b) return;
+      currentFilter.level = b.dataset.level; dailyOnly = false; renderFilters(); viewLearn();
+    });
+    $('#searchInput').addEventListener('input', e => {
+      currentFilter.q = e.target.value.trim(); dailyOnly = false; viewLearn();
+    });
+
+    $('#content').addEventListener('click', e => {
+      const star = e.target.closest('[data-star]');
+      if (star) {
+        const id = star.dataset.star;
+        if (state.favorites[id]) { delete state.favorites[id]; }
+        else { state.favorites[id] = true; addToReview(id, true); }
+        save(); star.classList.toggle('on'); star.textContent = state.favorites[id] ? '★' : '☆';
+        toast(state.favorites[id] ? '已收藏 ⭐' : '已取消收藏');
+        return;
+      }
+      const speakBtn = e.target.closest('[data-speak]');
+      if (speakBtn) { e.stopPropagation(); speak(speakBtn.dataset.speak, { el: speakBtn }); return; }
+      const kw = e.target.closest('.kw');
+      if (kw) { openWord(kw.dataset.word, kw.dataset.card); return; }
+      const play = e.target.closest('[data-play]');
+      if (play) {
+        const c = getCard(play.dataset.play);
+        const kwMap = {}; (c.keywords || []).forEach(k => { kwMap[k.w.toLowerCase()] = k; });
+        speak(c.sentence.replace(/\[\[|\]\]/g, ''), { el: play, kwMap });
+        return;
+      }
+      const playD = e.target.closest('[data-play-dialog]');
+      if (playD) {
+        const c = getCard(playD.dataset.playDialog);
+        const kwMap = {}; (c.keywords || []).forEach(k => { kwMap[k.w.toLowerCase()] = k; });
+        speakSequence(c.dialogue.map(d => d.text.replace(/\[\[|\]\]/g, '')), { rate: 0.92, kwMap });
+        return;
+      }
+      const prac = e.target.closest('[data-practice]');
+      if (prac) {
+        const slot = $(`[data-slot="${prac.dataset.practice}"]`);
+        if (slot.dataset.open === '1') { slot.innerHTML = ''; slot.dataset.open = '0'; closeRecorder(); }
+        else { slot.innerHTML = ''; slot.dataset.open = '1'; openRecorder(slot, getCard(prac.dataset.practice)); }
+        return;
+      }
+      const learned = e.target.closest('[data-learned]');
+      if (learned) { markLearned(learned.dataset.learned); return; }
+      const recall = e.target.closest('[data-recall]');
+      if (recall) { reviewCard(recall.dataset.recall, parseInt(recall.dataset.q)); return; }
+      const brush = e.target.closest('[data-brush]');
+      if (brush) { brushUp(brush.dataset.brush); return; }
+      const rmode = e.target.closest('[data-rmode]');
+      if (rmode) { reviewMode = rmode.dataset.rmode; viewReview(); return; }
+      const rscene = e.target.closest('[data-rscene]');
+      if (rscene) { reviewScene = rscene.dataset.rscene; viewReview(); return; }
+      const go = e.target.closest('[data-go]');
+      if (go) { switchView(go.dataset.go); return; }
+      const solve = e.target.closest('[data-solve]');
+      if (solve) {
+        const er = state.errors.find(x => x.id === solve.dataset.solve);
+        if (er) { er.solved = !er.solved; save(); viewErrors(); }
+        return;
+      }
+      const delfav = e.target.closest('[data-delfav]');
+      if (delfav) {
+        state.custom = state.custom.filter(x => x.id !== delfav.dataset.delfav);
+        delete state.favorites[delfav.dataset.delfav];
+        save(); renderCustomList();
+        return;
+      }
+    });
+
+    $$('.modal-overlay').forEach(ov => {
+      ov.addEventListener('click', e => {
+        if (e.target === ov || e.target.hasAttribute('data-close')) {
+          ov.hidden = true; if (ov.id === 'wordModal' || ov.id === 'aiModal') closeRecorder();
+        }
+      });
+    });
+    $('#grammarTabs').addEventListener('click', e => {
+      const b = e.target.closest('[data-gtab]'); if (!b) return;
+      $$('#grammarTabs .chip').forEach(x => x.classList.toggle('active', x === b));
+      $('#grammarBody').innerHTML = GRAMMAR[b.dataset.gtab].html;
+    });
+
+    $('#aiScenePick').addEventListener('click', e => {
+      const b = e.target.closest('[data-aiscene]'); if (b) startAIScene(b.dataset.aiscene);
+    });
+    $('#aiSend').onclick = () => {
+      const v = $('#aiInput').value.trim(); if (!v || !aiState) return;
+      $('#aiInput').value = ''; aiUser(v);
+    };
+    $('#aiInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('#aiSend').click(); });
+    $('#aiMic').onclick = () => {
+      const mic = $('#aiMic'), micTxt = $('#aiMicTxt');
+      if (!SR) { toast('当前浏览器不支持语音识别'); return; }
+      if (!aiState) { toast('请先选择一个场景'); return; }
+      if (mic.classList.contains('recording')) return;
+      $('#aiInput').value = '';
+      startRecognition(
+        (t) => {
+          mic.classList.remove('recording'); micTxt.textContent = '点击说';
+          if (aiState && t && t.trim()) aiUser(t.trim());
+        },
+        (err) => {
+          mic.classList.remove('recording'); micTxt.textContent = '点击说';
+          if (err === 'unsupported') toast('浏览器不支持语音识别');
+          else if (err === 'no-speech') toast('没听清，请再说一次');
+          else if (err !== 'aborted') toast('语音识别出错，请重试');
+        },
+        {
+          onStart: () => { mic.classList.add('recording'); micTxt.textContent = '聆听中…'; },
+          onEnd: () => { mic.classList.remove('recording'); micTxt.textContent = '点击说'; }
+        }
+      );
+    };
+
+    $('#levelPref').value = state.settings.levelPref;
+    $('#levelPref').addEventListener('change', e => {
+      state.settings.levelPref = e.target.value; save();
+      toast('已保存推荐偏好：' + e.target.options[e.target.selectedIndex].text);
+    });
+
+    const fab = $('#scrollTop');
+    window.addEventListener('scroll', () => { fab.hidden = window.scrollY < 400; });
+    fab.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ---------------- 初始化 ---------------- */
+  function init() {
+    const banner = $('#audioBanner');
+    const bannerText = $('#audioBannerText');
+    if (banner && bannerText) {
+      if (!('speechSynthesis' in window)) {
+        banner.hidden = false;
+        banner.className = 'audio-banner';
+        bannerText.textContent = '🌐 当前浏览器未开放本地语音，已自动启用在线发音（需联网）。如需离线使用，建议用 Chrome 或 Edge 浏览器。';
+      } else if (window.location.protocol === 'file:') {
+        banner.hidden = false;
+        banner.className = 'audio-banner';
+        bannerText.textContent = '💡 检测到本地文件打开模式。建议用 Live Server 或本地服务器打开以获得最佳语音体验。发音仍可尝试使用。';
+      } else {
+        banner.hidden = true;
+      }
+      const bc = $('#audioBannerClose');
+      if (bc) bc.onclick = () => { banner.hidden = true; };
+    }
+
+    updateStreak();
+    try {
+      const sp = state.settings.speakSpeed || 'normal';
+      const seg = $('#speedSeg');
+      if (seg) seg.querySelectorAll('.segbtn').forEach(x => x.classList.toggle('active', x.dataset.speed === sp));
+    } catch (e) {}
+    renderFilters();
+    bindEvents();
+    switchView('learn');
+    updateDailyProgress();
+    if (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length) {
+      setTimeout(generateDaily, 300);
+    }
+    if (window.speechSynthesis) {
+      const warmup = () => {
+        try {
+          if (speechSynthesis.paused) speechSynthesis.resume();
+          const u = new SpeechSynthesisUtterance('Hi');
+          u.volume = 0; u.rate = 2;
+          speechSynthesis.speak(u);
+        } catch (e) {}
+      };
+      const once = () => { warmup(); document.removeEventListener('click', once); };
+      document.addEventListener('click', once, { once: true });
+    }
+  }
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
