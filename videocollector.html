@@ -652,6 +652,7 @@ function renderCards(){
 /* ---------- 右栏详情 ---------- */
 function showDetail(v, autoSwitchTab=true){
   selectedVid = v;
+  try{ localStorage.setItem('vc:detail', v.id); }catch(e){}
   $('detailBody').innerHTML = `
     <div class="detail-thumb"><img src="${v.thumb}" alt="thumb"></div>
     <div class="detail-field"><h4>📌 平台 · 发布时间</h4><p>${v.platform} · ${relativeTime(v.publishTime)} · ${v.durationSec}秒 · ${v.durationTag}</p></div>
@@ -825,7 +826,7 @@ $('btnClear').addEventListener('click',()=>{
   $('cards').innerHTML='<div class="empty-state">已清空，点击「开始采集」</div>';
   $('detailBody').innerHTML='<div class="detail-placeholder">点击任意视频卡片<br>此处显示封面、环境信息、视频主体、内容事件与视频链接</div>';
   renderTree(); buildThemeChips(); setStatus(State.IDLE); $('btnExport').disabled=true;
-  localStorage.removeItem('vc:videos'); localStorage.removeItem(FILTERS_KEY); localStorage.removeItem(TAB_KEY);
+  localStorage.removeItem('vc:videos'); localStorage.removeItem(FILTERS_KEY); localStorage.removeItem(TAB_KEY); localStorage.removeItem('vc:detail');
   localStorage.setItem(CLEARED_KEY, '1'); // 标记为“已清空”，刷新保持空白，不再回填/不再自动示例
   $('toolInfo').textContent='就绪'; toast('已清空');
   if(window.innerWidth<920) switchMobileTab('colLeft');
@@ -927,6 +928,12 @@ if(!loadVideos(savedFilters)){
   $('cards').innerHTML='<div class="empty-state">填写关键词后点击「开始采集」即可</div>';
   $('detailBody').innerHTML='<div class="detail-placeholder">点击任意视频卡片<br>此处显示封面、环境信息、视频主体、内容事件与视频链接</div>';
   $('toolInfo').textContent='就绪';
+}
+// 恢复上次打开的视频详情（列表/搜索结果已在 loadVideos 中恢复），刷新后停在原详情
+const _sd = localStorage.getItem('vc:detail');
+if(_sd && Array.isArray(videos)){
+  const _dv = videos.find(x=>String(x.id)===String(_sd));
+  if(_dv){ showDetail(_dv, false); }
 }
 // 移动端回到上次标签（搜索 / 结果 / 详情）；桌面端三栏恒显不受影响
 if(window.innerWidth < 920){

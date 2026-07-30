@@ -1056,6 +1056,8 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       errors: [], settings: { dailyCount: 4, levelPref: 'all', speakSpeed: 'normal' },
       dailyShown: {},
       stats: { streak: 0, lastActive: '', days: {} },
+      // 当前界面位置：刷新后恢复，避免“页面变了”
+      ui: { view: 'learn', scene: 'all', level: 'all', q: '', dailyOnly: false, reviewMode: 'due', reviewScene: 'all' },
     };
   }
   function save() {
@@ -1521,10 +1523,11 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
   }
 
   /* ---------------- 视图：学卡片 ---------------- */
-  let currentFilter = { scene: 'all', level: 'all', q: '' };
-  let dailyOnly = false;
-  let currentView = 'learn';
-  let reviewMode = 'due', reviewScene = 'all';
+  // 从持久化的 ui 状态恢复界面位置，刷新后停在原来的视图/筛选
+  let currentFilter = { scene: state.ui.scene || 'all', level: state.ui.level || 'all', q: state.ui.q || '' };
+  let dailyOnly = !!state.ui.dailyOnly;
+  let currentView = state.ui.view || 'learn';
+  let reviewMode = state.ui.reviewMode || 'due', reviewScene = state.ui.reviewScene || 'all';
 
   function applyFilter(list) {
     return list.filter(c => {
@@ -1561,7 +1564,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
   /* ---------------- 每日推荐 / 遗忘曲线 ---------------- */
   function generateDaily() {
     const t = todayStr();
-    if (state.dailyShown[t] && state.dailyShown[t].length) { dailyOnly = true; viewLearn(); return; }
+    if (state.dailyShown[t] && state.dailyShown[t].length) { dailyOnly = true; viewLearn(); state.ui.dailyOnly = true; save(); return; }
     let allPool = allCards().filter(c => !state.seen[c.id]);
     const pref = state.settings.levelPref;
     let pool = pref === 'all' ? allPool : allPool.filter(c => c.level === pref);
@@ -1574,6 +1577,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     state.dailyShown[t] = ids;
     save();
     dailyOnly = true;
+    state.ui.dailyOnly = true; save();
     toast(`已为你生成 ${ids.length} 张今日新卡 🎉`);
     viewLearn();
     updateDailyProgress();
@@ -2122,6 +2126,8 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     else if (v === 'errors') viewErrors();
     else if (v === 'report') viewReport();
     else if (v === 'custom') viewCustom();
+    // 记住当前视图与每日推荐状态，刷新后恢复
+    state.ui.view = v; state.ui.dailyOnly = dailyOnly; save();
     window.scrollTo({ top: 0 });
   }
 
@@ -2150,13 +2156,16 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     $('#sceneFilter').addEventListener('click', e => {
       const b = e.target.closest('[data-scene]'); if (!b) return;
       currentFilter.scene = b.dataset.scene; dailyOnly = false; renderFilters(); viewLearn();
+      state.ui.scene = currentFilter.scene; state.ui.dailyOnly = false; save();
     });
     $('#levelFilter').addEventListener('click', e => {
       const b = e.target.closest('[data-level]'); if (!b) return;
       currentFilter.level = b.dataset.level; dailyOnly = false; renderFilters(); viewLearn();
+      state.ui.level = currentFilter.level; state.ui.dailyOnly = false; save();
     });
     $('#searchInput').addEventListener('input', e => {
       currentFilter.q = e.target.value.trim(); dailyOnly = false; viewLearn();
+      state.ui.q = currentFilter.q; state.ui.dailyOnly = false; save();
     });
 
     $('#content').addEventListener('click', e => {
@@ -2201,9 +2210,9 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       const brush = e.target.closest('[data-brush]');
       if (brush) { brushUp(brush.dataset.brush); return; }
       const rmode = e.target.closest('[data-rmode]');
-      if (rmode) { reviewMode = rmode.dataset.rmode; viewReview(); return; }
+      if (rmode) { reviewMode = rmode.dataset.rmode; viewReview(); state.ui.reviewMode = reviewMode; save(); return; }
       const rscene = e.target.closest('[data-rscene]');
-      if (rscene) { reviewScene = rscene.dataset.rscene; viewReview(); return; }
+      if (rscene) { reviewScene = rscene.dataset.rscene; viewReview(); state.ui.reviewScene = reviewScene; save(); return; }
       const go = e.target.closest('[data-go]');
       if (go) { switchView(go.dataset.go); return; }
       const solve = e.target.closest('[data-solve]');
@@ -2305,7 +2314,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     } catch (e) {}
     renderFilters();
     bindEvents();
-    switchView('learn');
+    switchView(state.ui.view || 'learn');
     updateDailyProgress();
     if (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length) {
       setTimeout(generateDaily, 300);
