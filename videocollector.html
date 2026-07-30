@@ -906,20 +906,6 @@ function loadVideos(filters){
   return false;
 }
 
-/* ---------- 打开即载入示例 ---------- */
-function loadDemo(){
-  videos=[]; found=0; _uid=0;
-  const kw=decomposeKeyword($('keyword').value);
-  const N=14;
-  for(let i=0;i<N;i++){ let idx=null; if(i===3||i===9) idx=(i%2===0?5:6); const v=generateVideo(kw, Date.now()-i*ri(1800000,5400000), idx); videos.push(v); found++; }
-  selectedVid = videos[0];
-  buildThemeChips(); renderCards(); renderTree();
-  $('toolInfo').innerHTML='已搜索到 <b>'+found+'</b> 条原声视频（示例）';
-  setStatus(State.DONE);
-  if(selectedVid) showDetail(selectedVid, false);
-  toast('已载入示例数据，点击卡片查看详情');
-  saveVideos();
-}
 $('rangeHint').textContent='范围：'+tierByKey(currentTier).label;
 setStatus(State.IDLE);
 // 刷新时：有搜索记录 → 回填字段（仅填，不自动搜索）；无记录 → 保持空白
@@ -937,14 +923,10 @@ if(savedFilters){
   updateRangeLabel();
 }
 if(!loadVideos(savedFilters)){
-  // 已清空、或带筛选条件但暂无结果：保持空白，不回填/不自动示例/不自动搜索
-  if(localStorage.getItem(CLEARED_KEY) || savedFilters){
-    $('cards').innerHTML='<div class="empty-state">填写关键词后点击「开始采集」即可</div>';
-    $('detailBody').innerHTML='<div class="detail-placeholder">点击任意视频卡片<br>此处显示封面、环境信息、视频主体、内容事件与视频链接</div>';
-    $('toolInfo').textContent='就绪';
-  } else {
-    loadDemo(); // 首次访问：展示示例数据
-  }
+  // 无记录（首次访问 / 已清空 / 带条件但暂无结果）：一律显示空状态，不塞示例、不回填、不自动采集
+  $('cards').innerHTML='<div class="empty-state">填写关键词后点击「开始采集」即可</div>';
+  $('detailBody').innerHTML='<div class="detail-placeholder">点击任意视频卡片<br>此处显示封面、环境信息、视频主体、内容事件与视频链接</div>';
+  $('toolInfo').textContent='就绪';
 }
 // 移动端回到上次标签（搜索 / 结果 / 详情）；桌面端三栏恒显不受影响
 if(window.innerWidth < 920){
