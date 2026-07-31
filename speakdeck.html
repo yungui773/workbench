@@ -2098,7 +2098,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     else if (v === 'report') viewReport();
     else if (v === 'custom') viewCustom();
     // 记住当前视图与每日推荐状态，刷新后恢复
-    state.ui.view = v; state.ui.dailyOnly = dailyOnly; save();
+    try { state.ui.view = v; state.ui.dailyOnly = dailyOnly; save(); } catch (e) {}
     window.scrollTo({ top: 0 });
   }
 
@@ -2292,11 +2292,18 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     bindEvents();
     // 恢复上次所在的页面与筛选，刷新不乱跳
     const restoredView = state.ui.view || 'learn';
+    // 学卡片页面：若今日推荐为空，先回到全部卡片，避免一进来空白
+    if (restoredView === 'learn' && dailyOnly && (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length)) {
+      dailyOnly = false;
+      state.ui.dailyOnly = false;
+    }
     witchView(restoredView);
-    // 仅当停留在“学卡片 + 今日推荐”且当天尚未生成时，才自动补生成，避免刷新时强跳回学卡片
+    // 仅当用户明确在“今日推荐”模式且当天尚未生成时，才自动补生成
     if (restoredView === 'learn' && dailyOnly && (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length)) {
       setTimeout(generateDaily, 300);
     }
+    // 页面关闭前再保存一次当前视图，防止移动端刷新丢失位置
+    window.addEventListener('beforeunload', () => { state.ui.view = currentView; state.ui.dailyOnly = dailyOnly; save(); });
   }
   document.addEventListener('DOMContentLoaded', init);
 })();
