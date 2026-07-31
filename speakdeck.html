@@ -125,18 +125,25 @@ p { margin: .3em 0; }
 
 /* ---------- 筛选 ---------- */
 .filters {
-  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-  padding: 14px 20px; background: var(--bg);
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px 20px; background: var(--bg);
 }
+.filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.filter-collapse {
+  display: none; flex-wrap: wrap; gap: 10px; align-items: center;
+  animation: slideDown .2s ease;
+}
+.filter-collapse.open { display: flex; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {
   border: 1px solid var(--line); background: #fff; cursor: pointer;
-  padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
   color: var(--ink-soft); transition: all .15s; display: inline-flex; align-items: center; gap: 4px;
 }
 .chip:hover { border-color: var(--brand); color: var(--brand); }
 .chip.active { background: var(--brand-soft); border-color: var(--brand-soft); color: var(--brand); }
-.chip .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .filter-search { flex: 1; min-width: 180px; }
 .filter-search input {
   width: 100%; padding: 9px 14px; border: 1px solid var(--line);
@@ -158,13 +165,17 @@ p { margin: .3em 0; }
   background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 18px; display: flex; flex-direction: column; gap: 12px;
   border: 1px solid var(--line); position: relative; transition: transform .12s ease;
+  overflow: hidden;
 }
 .fcard:hover { transform: translateY(-2px); }
-.fcard .badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.lvl {
-  font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; color: #fff;
+.fcard .new-badge {
+  position: absolute; top: 0; right: 0;
+  background: var(--brand); color: #fff; font-size: 11px; font-weight: 800;
+  padding: 4px 10px; border-radius: 0 0 0 10px; z-index: 2;
 }
-.scene-tag { font-size: 12px; color: var(--ink-soft); }
+.fcard .badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--ink-soft); }
+.fcard .badges .lvl { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; color: #fff; }
+.scene-tag { display: inline-flex; align-items: center; gap: 4px; }
 .star {
   margin-left: auto; background: none; border: none; cursor: pointer; font-size: 20px;
   color: #d7dbe6; line-height: 1; transition: transform .15s, color .15s;
@@ -172,8 +183,14 @@ p { margin: .3em 0; }
 .star:hover { transform: scale(1.2); }
 .star.on { color: #ffc107; }
 
-.sentence { font-size: 19px; font-weight: 700; line-height: 1.5; }
+.sentence { font-size: 22px; font-weight: 700; line-height: 1.45; letter-spacing: .2px; }
+.sentence-translation { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
 .dialogue { background: var(--bg-soft); border-radius: 12px; padding: 10px 12px; font-size: 14.5px; }
+.dialogue .line { padding: 4px 0; }
+.dialogue .who { color: var(--brand); margin-right: 6px; }
+.line-translation { font-size: 12px; color: var(--ink-soft); margin-top: 2px; padding-left: 26px; }
+.card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.card-actions .btn { font-size: 13px; padding: 7px 12px; }
 .dialogue .line { display: flex; gap: 8px; padding: 3px 0; }
 .dialogue .who {
   font-weight: 800; font-size: 12px; min-width: 20px; color: var(--brand);
@@ -363,12 +380,21 @@ canvas.wave { width: 100%; height: 70px; background: #fff; border-radius: 8px; b
   .mobnav { display: none; }
 }
 
-/* 语速控制条 */
-.speedbar{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
-.speed-label{font-size:13px;color:var(--ink-soft);font-weight:600;white-space:nowrap}
-.seg{display:inline-flex;background:var(--bg-soft);border-radius:999px;padding:3px}
-.segbtn{border:0;background:transparent;padding:6px 14px;border-radius:999px;font-size:13px;color:var(--ink-soft);cursor:pointer;transition:.15s;font-family:inherit}
-.segbtn.active{background:var(--brand);color:#fff;box-shadow:0 2px 8px rgba(59,124,255,.35)}
+/* 浮动语速控制（仅在播放时出现） */
+.speed-float {
+  position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px;
+  background: #fff; border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 6px;
+  box-shadow: 0 6px 24px rgba(40,60,120,.14); z-index: 96;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+}
+.speed-float.show { opacity: 1; pointer-events: auto; }
+.speed-float .speed-label { font-size: 12px; color: var(--ink-soft); font-weight: 700; padding: 0 6px; white-space: nowrap; }
+.seg { display: inline-flex; background: var(--bg-soft); border-radius: 999px; padding: 3px; }
+.segbtn { border: 0; background: transparent; padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--ink-soft); cursor: pointer; transition: .15s; font-family: inherit; font-weight: 700; }
+.segbtn.active { background: var(--brand); color: #fff; }
 .tts-loading{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#2b3245;color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;z-index:98;box-shadow:0 6px 22px rgba(0,0,0,.2)}
 #wordPanel{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);box-shadow:0 -8px 30px rgba(40,60,120,.12);padding:12px 14px calc(12px + env(safe-area-inset-bottom));z-index:97;max-height:46vh;overflow:auto}
 .wp-head{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft);margin-bottom:8px}.wp-head>span{flex:1}.wp-close{border:0;background:var(--bg-soft);color:var(--ink-soft);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1}
@@ -407,17 +433,8 @@ canvas.wave { width: 100%; height: 70px; background: #fff; border-radius: 8px; b
     </div>
   </header>
 
-  <!-- 每日进度条 -->
-  <div class="daily-progress">
-    <div class="dp-info">
-      <span id="dpLabel">今日新卡 0 / 0</span>
-      <span id="dpDate"></span>
-    </div>
-    <div class="dp-bar"><div class="dp-fill" id="dpFill"></div></div>
-  </div>
-
-  <!-- 语速控制 -->
-  <div class="speedbar" id="speedbar">
+  <!-- 浮动语速控制 -->
+  <div class="speed-float" id="speedFloat">
     <span class="speed-label">🔊 语速</span>
     <div class="seg" id="speedSeg" role="group" aria-label="语速选择">
       <button class="segbtn active" data-speed="normal">正常</button>
@@ -430,9 +447,7 @@ canvas.wave { width: 100%; height: 70px; background: #fff; border-radius: 8px; b
   <nav class="mainnav" id="mainnav">
     <button class="navitem active" data-view="learn">📚 学卡片</button>
     <button class="navitem" data-view="review">🔁 今日复习</button>
-    <button class="navitem" data-view="fav">⭐ 收藏</button>
     <button class="navitem" data-view="errors">📕 错句本</button>
-    <button class="navitem" data-view="report">📊 周报</button>
     <button class="navitem" data-view="custom">➕ 自定义</button>
   </nav>
 
@@ -440,26 +455,31 @@ canvas.wave { width: 100%; height: 70px; background: #fff; border-radius: 8px; b
   <nav class="mobnav" id="mobnav">
     <button class="mobitem active" data-view="learn"><span class="mobicn">📚</span><span>学卡片</span></button>
     <button class="mobitem" data-view="review"><span class="mobicn">🔁</span><span>复习</span></button>
-    <button class="mobitem" data-view="fav"><span class="mobicn">⭐</span><span>收藏</span></button>
     <button class="mobitem" data-view="errors"><span class="mobicn">📕</span><span>错句</span></button>
-    <button class="mobitem" data-view="report"><span class="mobicn">📊</span><span>周报</span></button>
     <button class="mobitem" data-view="custom"><span class="mobicn">➕</span><span>自定义</span></button>
   </nav>
 
   <!-- 筛选条 -->
   <section class="filters" id="filterBar">
-    <div class="filter-group" id="sceneFilter"></div>
-    <div class="filter-group" id="levelFilter"></div>
-    <div class="filter-search">
-      <input type="search" id="searchInput" placeholder="🔍 搜索句子 / 单词…" />
+    <div class="filter-row">
+      <div class="filter-search">
+        <input type="search" id="searchInput" placeholder="🔍 搜索句子 / 单词…" />
+      </div>
+      <button class="btn small" id="dailyBtn">🎯 今日推荐</button>
+      <button class="btn small ghost" id="filterToggle">⚙️ 筛选</button>
     </div>
-    <button class="btn small" id="dailyBtn">🎯 今日推荐</button>
-    <select id="levelPref" class="chip" title="每日推荐难度偏好" style="padding:6px 10px">
-      <option value="all">全部难度推荐</option>
-      <option value="survival">优先生存英语</option>
-      <option value="daily">优先日常熟练</option>
-      <option value="native">优先地道表达</option>
-    </select>
+    <div class="filter-collapse" id="filterCollapse">
+      <div class="filter-group" id="sceneFilter"></div>
+      <div class="filter-group" id="levelFilter"></div>
+      <div class="filter-group">
+        <select id="levelPref" class="chip" title="每日推荐难度偏好" style="padding:6px 10px">
+          <option value="all">全部难度推荐</option>
+          <option value="survival">优先生存英语</option>
+          <option value="daily">优先日常熟练</option>
+          <option value="native">优先地道表达</option>
+        </select>
+      </div>
+    </div>
   </section>
 
   <!-- 内容区 -->
@@ -1149,6 +1169,19 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
   }
   function hideTtsLoading() { if (ttsLoadingEl) ttsLoadingEl.hidden = true; }
 
+  /* 浮动语速条：仅在播放时出现 */
+  let speedHideTimer = null;
+  function showSpeedFloat() {
+    const el = $('#speedFloat'); if (el) el.classList.add('show');
+    if (speedHideTimer) { clearTimeout(speedHideTimer); speedHideTimer = null; }
+  }
+  function hideSpeedFloat() {
+    if (speedHideTimer) clearTimeout(speedHideTimer);
+    speedHideTimer = setTimeout(() => {
+      const el = $('#speedFloat'); if (el) el.classList.remove('show');
+    }, 1200);
+  }
+
   let ttsWarmed = false;
   function warmTts() {
     if (ttsWarmed) return; ttsWarmed = true;
@@ -1160,7 +1193,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     const el = opts.el;
     const speed = opts.speed || state.settings.speakSpeed || 'normal';
     if (el) el.classList.add('speaking');
-    const cleanup = () => { if (el) el.classList.remove('speaking'); };
+    const cleanup = () => { if (el) el.classList.remove('speaking'); hideSpeedFloat(); };
 
     const useBaidu = /\s/.test(text) || text.length > 30 || /[.!?;，。！？；]/.test(text);
     const sources = useBaidu
@@ -1208,6 +1241,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
 
 
   function speak(text, opts = {}) {
+    showSpeedFloat();
     const speed = state.settings.speakSpeed || 'normal';
     if (speed === 'word' && text.trim().split(/\s+/).length > 1) {
       speakWordByWord(text, opts);
@@ -1242,9 +1276,9 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
 
     const el = opts.el;
     if (el) el.classList.add('speaking');
-    u.onend = () => { if (el) el.classList.remove('speaking'); };
+    u.onend = () => { if (el) el.classList.remove('speaking'); hideSpeedFloat(); };
     u.onerror = (e) => {
-      if (el) el.classList.remove('speaking');
+      if (el) el.classList.remove('speaking'); hideSpeedFloat();
       if (!synthFailed) {
         synthFailed = true;
         if (e.error === 'not-allowed' || e.error === 'audio-busy') {
@@ -1268,6 +1302,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
   }
 
   function speakSequence(texts, opts = {}) {
+    showSpeedFloat();
     const speed = state.settings.speakSpeed || 'normal';
     if (speed === 'word' && texts.join(' ').trim().split(/\s+/).length > 1) {
       speakWordByWord(texts.join(' '), opts);
@@ -1294,7 +1329,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       u.volume = 1;
       const v = pickVoice(); if (v) u.voice = v;
       if (state.settings.speakSpeed === 'slow') u.rate = 0.6;
-      u.onend = next;
+      u.onend = () => { hideSpeedFloat(); next(); };
       u.onerror = () => { next(); };
       try { speechSynthesis.speak(u); } catch (e) {}
     };
@@ -1315,8 +1350,10 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
   function stopWordPlayback() {
     if (wordPlayCtrl) { try { wordPlayCtrl.stop(); } catch (e) {} wordPlayCtrl = null; }
     if (wordPanelEl) wordPanelEl.hidden = true;
+    hideSpeedFloat();
   }
     function speakWordByWord(text, opts = {}) {
+    showSpeedFloat();
     stopWordPlayback();
     const el = opts.el;
     if (el) el.classList.add('speaking');
@@ -1500,31 +1537,32 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     const lvl = levelInfo(card.level);
     const sc = SCENES.find(s => s.id === card.scene) || { emoji: '📌', name: card.scene };
     const starred = !!state.favorites[card.id];
+    const todayIds = state.dailyShown[todayStr()] || [];
+    const isNew = todayIds.includes(card.id);
     const culture = card.cultureTip
-      ? `<div class="culture"><b>💡 文化小贴士：</b>${escapeHtml(card.cultureTip)}</div>` : '';
+      ? `<div class="culture"><b>💡</b> ${escapeHtml(card.cultureTip)}</div>` : '';
     let actions = `
-      <button class="btn small" data-play="${escapeHtml(card.id)}">▶ 播放整句</button>
-      <button class="btn small ghost" data-practice="${escapeHtml(card.id)}">🎤 跟读练习</button>
-      <button class="btn small ghost" data-brush="${escapeHtml(card.id)}">📌 提前排练</button>`;
+      <button class="btn small" data-play="${escapeHtml(card.id)}">▶ 播放</button>
+      <button class="btn small ghost" data-practice="${escapeHtml(card.id)}">🎤 跟读</button>
+      <button class="btn small ghost" data-brush="${escapeHtml(card.id)}">📌 排练</button>`;
     if (mode === 'learn') {
-      actions += `<button class="btn small ghost" data-learned="${escapeHtml(card.id)}">✓ 我学会了</button>`;
+      actions += `<button class="btn small ghost" data-learned="${escapeHtml(card.id)}">✓ 学会</button>`;
     }
     if (mode === 'review') {
-      actions += `<div class="rec-controls" style="margin-top:8px">
-        <span class="muted" style="font-size:12px">回顾后：</span>
+      actions += `
         <button class="btn small" data-recall="${escapeHtml(card.id)}" data-q="2">😎 记得</button>
         <button class="btn small ghost" data-recall="${escapeHtml(card.id)}" data-q="1">🤔 模糊</button>
-        <button class="btn small ghost" data-recall="${escapeHtml(card.id)}" data-q="0">😵 忘了</button>
-      </div>`;
+        <button class="btn small ghost" data-recall="${escapeHtml(card.id)}" data-q="0">😵 忘了</button>`;
     }
     return `<article class="fcard" data-card-id="${escapeHtml(card.id)}">
+      ${isNew ? '<div class="new-badge">新</div>' : ''}
+      <div class="sentence">${renderMarked(card.sentence, card)}</div>
+      ${card.sentenceTranslation ? `<div class="sentence-translation">${escapeHtml(card.sentenceTranslation)}</div>` : ''}
       <div class="badges">
         <span class="lvl" style="background:${lvl.color}">${lvl.name}</span>
         <span class="scene-tag">${sc.emoji} ${escapeHtml(sc.name)}</span>
         <button class="star ${starred ? 'on' : ''}" data-star="${escapeHtml(card.id)}" title="收藏">${starred ? '★' : '☆'}</button>
       </div>
-      <div class="sentence">${renderMarked(card.sentence, card)}</div>
-      ${card.sentenceTranslation ? `<div class="sentence-translation">${escapeHtml(card.sentenceTranslation)}</div>` : ''}
       <div class="dialogue">
         ${card.dialogue.map(d => `<div class="line"><span class="who">${escapeHtml(d.sp)}</span><span>${renderMarked(d.text, card)}</span>${d.translation ? `<div class="line-translation">${escapeHtml(d.translation)}</div>` : ''}</div>`).join('')}
         <div class="dialogue-actions">
@@ -1595,7 +1633,6 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     state.ui.dailyOnly = true; save();
     toast(`已为你生成 ${ids.length} 张今日新卡 🎉`);
     viewLearn();
-    updateDailyProgress();
   }
 
   function addToReview(cardId, initial) {
@@ -2091,22 +2128,13 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     w.document.close();
   }
 
-  /* ---------------- 每日进度 / 打卡 ---------------- */
-  function updateDailyProgress() {
-    const t = todayStr();
-    const total = state.settings.dailyCount;
-    const learned = (state.stats.days[t] && state.stats.days[t].learned) || 0;
-    $('#dpLabel').textContent = `今日新卡 ${learned} / ${total}`;
-    $('#dpFill').style.width = Math.min(100, Math.round(learned / total * 100)) + '%';
-    $('#dpDate').textContent = t;
-    $('#streakDays').textContent = state.stats.streak;
-  }
+  /* ---------------- 打卡 ---------------- */
   function markLearned(cardId) {
     const t = todayStr();
     const s = state.stats.days[t] || { learned: 0, accSum: 0, accCount: 0 };
     s.learned += 1; state.stats.days[t] = s;
     addToReview(cardId, false);
-    save(); updateDailyProgress();
+    save();
     toast('已记录学习 ✅');
     if (dailyOnly) viewLearn();
   }
@@ -2168,6 +2196,8 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     $('#grammarBtn').onclick = openGrammar;
     $('#aiBtn').onclick = openAI;
     $('#dailyBtn').onclick = () => { switchView('learn'); generateDaily(); };
+    const ft = $('#filterToggle');
+    if (ft) ft.onclick = () => $('#filterCollapse').classList.toggle('open');
 
     $('#sceneFilter').addEventListener('click', e => {
       const b = e.target.closest('[data-scene]'); if (!b) return;
@@ -2334,7 +2364,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     if (searchInput) searchInput.value = currentFilter.q || '';
     bindEvents();
     switchView(state.ui.view || 'learn');
-    updateDailyProgress();
+    $('#streakDays').textContent = state.stats.streak;
     if (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length) {
       setTimeout(generateDaily, 300);
     }
