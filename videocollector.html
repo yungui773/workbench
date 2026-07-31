@@ -7,11 +7,14 @@
 <style>
 :root{
   --bg:#f4f6fa; --card:#ffffff; --card2:#f7f9fc; --line:#e6e9ef;
-  --txt:#1f2733; --sub:#707a8a; --muted:#97a3b6;
-  --accent:#3b7df6; --accent2:#8b5cf6;
-  --green:#2bb673; --blue:#3b7df6; --orange:#f5a623; --red:#ef5b5b;
+  --txt:#1f2733; --sub:#6b7280; --muted:#97a3b6;
+  --accent:#3b7df6; --accent2:#8b5cf6; --accent-soft:#eef4ff;
+  --green:#34c759; --green-soft:#e8f9ee;
+  --blue:#3b7df6;
+  --orange:#ff9500; --orange-soft:#fff4e5;
+  --red:#ff3b30; --red-soft:#ffebee;
   --tk:#06b6d4; --yt:#ff3366;
-  --hover:#eef2f9; --shadow:0 1px 2px rgba(16,24,40,.04),0 4px 12px rgba(16,24,40,.05);
+  --hover:#f3f6fc; --shadow:0 1px 2px rgba(16,24,40,.04),0 4px 12px rgba(16,24,40,.05);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--txt);
@@ -52,7 +55,7 @@ button{font-family:inherit;cursor:pointer}
 .mobile-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
   height:100%;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:500;transition:.15s}
 .mobile-tab .ic{font-size:18px;line-height:1}
-.mobile-tab.active{color:var(--accent);background:rgba(59,124,255,.06)}
+.mobile-tab.active{color:var(--accent);background:var(--accent-soft)}
 
 /* ===== 公共：区块 / 表单 ===== */
 .sec{padding:14px 16px;border-bottom:1px solid var(--line)}
@@ -73,20 +76,22 @@ select{-webkit-appearance:none;appearance:none;
   background-repeat:no-repeat;background-position:right 12px center;background-size:14px;padding-right:34px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn-row{display:flex;gap:8px}
-.btn{flex:1;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;color:#fff;transition:.15s}
+.btn{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:13px;font-weight:600;color:var(--txt);background:#fff;transition:.15s}
 .btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-go{background:linear-gradient(135deg,#34d399,#2bb673)}
-.btn-go:hover:not(:disabled){filter:brightness(1.05)}
-.btn-pause{background:linear-gradient(135deg,#fbbf24,#f5a623)}
-.btn-stop{background:linear-gradient(135deg,#f87171,#ef5b5b)}
-.btn-ghost{background:#fff;color:var(--sub);border:1px solid var(--line)}
-.btn-ghost:hover{color:var(--txt);border-color:var(--sub)}
+.btn-go{color:var(--green);border-color:var(--green);background:#fff}
+.btn-go:hover:not(:disabled){background:var(--green-soft)}
+.btn-pause{color:var(--orange);border-color:var(--orange);background:#fff}
+.btn-pause:hover:not(:disabled){background:var(--orange-soft)}
+.btn-stop{color:var(--red);border-color:var(--red);background:#fff}
+.btn-stop:hover:not(:disabled){background:var(--red-soft)}
+.btn-ghost{color:var(--sub);border-color:transparent;background:transparent}
+.btn-ghost:hover{color:var(--txt);background:var(--hover)}
 
 /* 主题 chips */
 .theme-grid{display:flex;flex-wrap:wrap;gap:7px}
 .theme-chip{font-size:12px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);
   color:var(--sub);cursor:pointer;transition:.12s;user-select:none;display:flex;align-items:center;gap:5px;background:#fff}
-.theme-chip.on{border-color:var(--accent);color:var(--accent);background:rgba(59,124,255,.1)}
+.theme-chip.on{border-color:var(--accent-soft);color:var(--accent);background:var(--accent-soft)}
 .theme-chip .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .theme-chip.on .dot{background:var(--accent)}
 .theme-chip.new{animation:flash 1s ease}
@@ -102,7 +107,7 @@ select{-webkit-appearance:none;appearance:none;
 .tree-item.platform{margin-left:12px;font-weight:600}
 .tree-item.theme{margin-left:26px}
 .tree-item .cnt{font-size:11px;color:var(--muted);margin-left:auto}
-.tree-item.selected{color:var(--accent);background:rgba(59,124,255,.08)}
+.tree-item.selected{color:var(--accent);background:var(--accent-soft)}
 .tree-empty{color:var(--muted);text-align:center;padding:20px;font-size:13px}
 
 /* ===== 中栏：搜索结果 ===== */
@@ -119,7 +124,7 @@ select{-webkit-appearance:none;appearance:none;
 .vcard{background:#fff;border:1px solid var(--line);border-radius:12px;
   overflow:hidden;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
 .vcard:hover{border-color:var(--accent)}
-.vcard.selected{border-color:var(--accent2);box-shadow:0 0 0 2px var(--accent2)}
+.vcard.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
 .thumb{position:relative;width:100%;aspect-ratio:16/9;background:var(--card2)}
 .thumb img{width:100%;height:100%;display:block;object-fit:cover}
 .plat-badge{position:absolute;top:8px;left:8px;font-size:10px;font-weight:700;
@@ -141,7 +146,7 @@ select{-webkit-appearance:none;appearance:none;
 .vlink .link-icon{flex-shrink:0}
 .vlink .link-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .vlink:active{background:var(--hover)}
-.empty-state{color:var(--muted);text-align:center;padding:60px 16px;font-size:14px;grid-column:1/-1}
+.empty-state{color:var(--sub);text-align:center;padding:60px 16px;font-size:14px;line-height:1.7;grid-column:1/-1}
 
 /* ===== 右栏：视频详情 ===== */
 .detail-head{display:flex;align-items:center;gap:8px;padding:13px 16px;
@@ -827,7 +832,6 @@ $('btnClear').addEventListener('click',()=>{
   $('detailBody').innerHTML='<div class="detail-placeholder">点击任意视频卡片<br>此处显示封面、环境信息、视频主体、内容事件与视频链接</div>';
   renderTree(); buildThemeChips(); setStatus(State.IDLE); $('btnExport').disabled=true;
   localStorage.removeItem('vc:videos'); localStorage.removeItem(FILTERS_KEY); localStorage.removeItem(TAB_KEY); localStorage.removeItem('vc:detail');
-  localStorage.setItem(CLEARED_KEY, '1'); // 标记为“已清空”，刷新保持空白，不再回填/不再自动示例
   $('toolInfo').textContent='就绪'; toast('已清空');
   if(window.innerWidth<920) switchMobileTab('colLeft');
 });
@@ -855,10 +859,8 @@ $('btnDetailBack').addEventListener('click',()=>switchMobileTab('colCenter'));
 /* ---------- 本地保存（视频 + 筛选条件 + 所在页） ---------- */
 const FILTERS_KEY = 'vc:filters';
 const TAB_KEY = 'vc:tab';
-const CLEARED_KEY = 'vc:cleared';
 function saveFilters(){
   try{
-    localStorage.removeItem(CLEARED_KEY); // 一旦有记录，就不再是“已清空”状态
     localStorage.setItem(FILTERS_KEY, JSON.stringify({
       keyword: $('keyword').value,
       timeRange: $('timeRange').value,
@@ -887,12 +889,6 @@ function loadVideos(filters){
       videos=JSON.parse(s); 
       found=videos.length; 
       videos.forEach(v => registerTheme(v.theme, false)); // 恢复主题
-      // 恢复上一轮的「主题筛选」勾选
-      if(filters && filters.selectedThemes){
-        const valid = filters.selectedThemes.filter(t => discoveredThemes.has(t));
-        selectedThemeFilters = new Set(valid);
-        if(valid.length === 0) discoveredThemes.forEach(k => selectedThemeFilters.add(k)); // 全空时退回全选，避免空白
-      }
       buildThemeChips(); 
       const svId = filters && filters.selectedVidId;
       selectedVid = (svId != null ? videos.find(v => v.id === svId) : videos[0]) || null;
@@ -920,6 +916,8 @@ if(savedFilters){
   $('customRange').style.display = ($('timeRange').value==='custom') ? 'block' : 'none';
   includeOldVideos = !!savedFilters.includeOldVideos;
   activeTreeFilter = savedFilters.activeTreeFilter || null;
+  // 主题筛选独立恢复：不依赖 vc:videos 是否存在，允许“全不选”状态
+  selectedThemeFilters = new Set(savedFilters.selectedThemes || []);
   currentTier = $('timeRange').value;
   updateRangeLabel();
 }

@@ -14,19 +14,22 @@
  * ============================================================ */
 :root {
   --bg: #f4f6fa;
-  --bg-soft: #eef2f9;
+  --bg-soft: #f3f6fc;
   --card: #ffffff;
   --ink: #1f2733;
-  --ink-soft: #707a8a;
+  --ink-soft: #6b7280;
   --line: #e6e9ef;
   --brand: #3b7df6;
-  --brand-soft: #eaf1ff;
+  --brand-soft: #eef4ff;
   --accent: #ff8a65;
-  --kw: #ff7a59;       /* 重点词高亮 */
+  --kw: #ff7a59;
   --kw-bg: #fff0ea;
-  --good: #2bb673;
-  --warn: #f5a623;
-  --bad: #ef5b5b;
+  --good: #34c759;
+  --good-soft: #e8f9ee;
+  --warn: #ff9500;
+  --warn-soft: #fff4e5;
+  --bad: #ff3b30;
+  --bad-soft: #ffebee;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 12px rgba(16, 24, 40, 0.05);
   --radius: 14px;
   font-size: 16px;
@@ -66,7 +69,7 @@ p { margin: .3em 0; }
 .tagline { font-size: 12px; color: var(--ink-soft); margin: 0; }
 .topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .streak {
-  background: #fff3e6; color: #c9701a; font-weight: 700;
+  background: var(--warn-soft); color: #c9701a; font-weight: 700;
   padding: 6px 12px; border-radius: 999px; font-size: 14px;
 }
 
@@ -85,7 +88,7 @@ p { margin: .3em 0; }
   transition: color .15s;
 }
 .mobitem .mobicn { font-size: 20px; line-height: 1; }
-.mobitem.active { color: var(--brand); }
+.mobitem.active { color: var(--brand); background: var(--brand-soft); }
 
 /* ---------- 按钮 ---------- */
 .btn {
@@ -96,7 +99,7 @@ p { margin: .3em 0; }
 }
 .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
 .btn:active { transform: translateY(0); }
-.btn.primary { background: var(--brand); color: #fff; }
+.btn.primary { background: #fff; color: var(--brand); border: 1px solid var(--brand); }
 .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink-soft); }
 .btn.small { padding: 7px 12px; font-size: 13px; }
 .btn.block { width: 100%; margin-top: 10px; }
@@ -118,7 +121,7 @@ p { margin: .3em 0; }
   color: var(--ink-soft); white-space: nowrap; transition: all .15s;
 }
 .navitem:hover { background: var(--bg-soft); }
-.navitem.active { background: var(--brand); color: #fff; }
+.navitem.active { background: var(--brand-soft); color: var(--brand); }
 
 /* ---------- 筛选 ---------- */
 .filters {
@@ -132,7 +135,7 @@ p { margin: .3em 0; }
   color: var(--ink-soft); transition: all .15s; display: inline-flex; align-items: center; gap: 4px;
 }
 .chip:hover { border-color: var(--brand); color: var(--brand); }
-.chip.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.chip.active { background: var(--brand-soft); border-color: var(--brand-soft); color: var(--brand); }
 .chip .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
 .filter-search { flex: 1; min-width: 180px; }
 .filter-search input {
@@ -439,6 +442,7 @@ canvas.wave { width: 100%; height: 70px; background: #fff; border-radius: 8px; b
     <button class="mobitem" data-view="review"><span class="mobicn">🔁</span><span>复习</span></button>
     <button class="mobitem" data-view="fav"><span class="mobicn">⭐</span><span>收藏</span></button>
     <button class="mobitem" data-view="errors"><span class="mobicn">📕</span><span>错句</span></button>
+    <button class="mobitem" data-view="report"><span class="mobicn">📊</span><span>周报</span></button>
     <button class="mobitem" data-view="custom"><span class="mobicn">➕</span><span>自定义</span></button>
   </nav>
 
@@ -2115,7 +2119,8 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
   /* ---------------- 导航 / 事件 ---------------- */
   function switchView(v) {
     stopWordPlayback();
-    dailyOnly = false;
+    // 只有离开 learn 视图时才清空每日推荐标记，避免刷新后“今日推荐”被强制切回全部卡片
+    if (v !== 'learn') dailyOnly = false;
     currentView = v;
     $$('.navitem').forEach(b => b.classList.toggle('active', b.dataset.view === v));
     $$('.mobitem').forEach(b => b.classList.toggle('active', b.dataset.view === v));
@@ -2313,6 +2318,9 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       if (seg) seg.querySelectorAll('.segbtn').forEach(x => x.classList.toggle('active', x.dataset.speed === sp));
     } catch (e) {}
     renderFilters();
+    // 搜索框 value 与 currentFilter.q 保持一致，避免“列表已过滤但输入框为空”
+    const searchInput = $('#searchInput');
+    if (searchInput) searchInput.value = currentFilter.q || '';
     bindEvents();
     switchView(state.ui.view || 'learn');
     updateDailyProgress();
