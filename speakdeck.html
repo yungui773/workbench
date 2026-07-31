@@ -1049,20 +1049,31 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
   };
   const sameDay = (a, b) => a === b;
 
+  const DEFAULT_STATE = {
+    seen: {}, reviews: {}, favorites: {}, custom: [],
+    errors: [], settings: { dailyCount: 4, levelPref: 'all', speakSpeed: 'normal' },
+    dailyShown: {},
+    stats: { streak: 0, lastActive: '', days: {} },
+    // 当前界面位置：刷新后恢复，避免“页面变了”
+    ui: { view: 'learn', scene: 'all', level: 'all', q: '', dailyOnly: false, reviewMode: 'due', reviewScene: 'all' },
+  };
   let state = load();
   function load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        // 兼容旧数据：确保 state.ui / settings / stats 等嵌套对象存在
+        return {
+          ...DEFAULT_STATE,
+          ...saved,
+          settings: { ...DEFAULT_STATE.settings, ...(saved.settings || {}) },
+          stats: { ...DEFAULT_STATE.stats, ...(saved.stats || {}) },
+          ui: { ...DEFAULT_STATE.ui, ...(saved.ui || {}) },
+        };
+      }
     } catch (e) {}
-    return {
-      seen: {}, reviews: {}, favorites: {}, custom: [],
-      errors: [], settings: { dailyCount: 4, levelPref: 'all', speakSpeed: 'normal' },
-      dailyShown: {},
-      stats: { streak: 0, lastActive: '', days: {} },
-      // 当前界面位置：刷新后恢复，避免“页面变了”
-      ui: { view: 'learn', scene: 'all', level: 'all', q: '', dailyOnly: false, reviewMode: 'due', reviewScene: 'all' },
-    };
+    return JSON.parse(JSON.stringify(DEFAULT_STATE));
   }
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
