@@ -58,20 +58,15 @@ p { margin: .3em 0; }
 .audio-banner[hidden] { display: none; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding: 14px 20px;
+  gap: 12px; padding: 10px 16px;
   background: #ffffff;
   border-bottom: 1px solid var(--line);
   position: sticky; top: 0; z-index: 30;
 }
-.brand { display: flex; align-items: center; gap: 12px; }
-.brand .logo { font-size: 30px; }
-.brand h1 { font-size: 22px; }
-.tagline { font-size: 12px; color: var(--ink-soft); margin: 0; }
-.topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.streak {
-  background: var(--warn-soft); color: #c9701a; font-weight: 700;
-  padding: 6px 12px; border-radius: 999px; font-size: 14px;
-}
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand .logo { font-size: 24px; }
+.brand h1 { font-size: 18px; margin: 0; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
 
 /* ---------- 移动端底部导航 ---------- */
 .mobnav {
@@ -179,16 +174,12 @@ p { margin: .3em 0; }
 
 .sentence { font-size: 22px; font-weight: 700; line-height: 1.45; letter-spacing: .2px; }
 .sentence-translation { font-size: 14px; color: var(--ink-soft); line-height: 1.5; }
-.dialogue { background: var(--bg-soft); border-radius: 12px; padding: 10px 12px; font-size: 14.5px; }
-.dialogue .line { padding: 4px 0; }
-.dialogue .who { color: var(--brand); margin-right: 6px; }
-.line-translation { font-size: 12px; color: var(--ink-soft); margin-top: 2px; padding-left: 26px; }
+.dialogue { background: var(--bg-soft); border-radius: 12px; padding: 12px 14px; font-size: 15px; }
+.dialogue .line { padding: 6px 0; }
+.dialogue .who { color: var(--brand); font-weight: 800; font-size: 12px; margin-right: 6px; }
+.line-translation { font-size: 13px; color: var(--ink-soft); margin-top: 4px; padding-left: 0; }
 .card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .card-actions .btn { font-size: 13px; padding: 7px 12px; }
-.dialogue .line { display: flex; gap: 8px; padding: 3px 0; }
-.dialogue .who {
-  font-weight: 800; font-size: 12px; min-width: 20px; color: var(--brand);
-}
 .dialogue-actions { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
 
 /* 重点词 */
@@ -413,17 +404,10 @@ canvas.wave { width: 100%; height: 70px; background: #fff; border-radius: 8px; b
   <header class="topbar">
     <div class="brand">
       <span class="logo">🗣️</span>
-      <div>
-        <h1>SpeakDeck</h1>
-        <p class="tagline">卡片式英语口语工作台</p>
-      </div>
+      <h1>英语自学</h1>
     </div>
     <div class="topbar-right">
-      <div class="streak" id="streakBox" title="连续打卡天数">
-        🔥 <span id="streakDays">0</span> 天
-      </div>
       <button class="btn ghost" id="grammarBtn">📚 语法速查</button>
-      <button class="btn primary" id="aiBtn">🤖 AI陪练</button>
     </div>
   </header>
 
@@ -1229,7 +1213,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
 
   function speakSequenceOnline(texts, opts = {}) {
     let i = 0;
-    const next = () => { if (i >= texts.length) return; speakOnline(texts[i++], { ...opts, onend: next }); };
+    const next = () => { if (i >= texts.length) return; speakOnline(texts[i++], { ...opts, onend: () => setTimeout(next, 60) }); };
     next();
   }
 
@@ -1323,7 +1307,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       u.volume = 1;
       const v = pickVoice(); if (v) u.voice = v;
       if (state.settings.speakSpeed === 'slow') u.rate = 0.6;
-      u.onend = () => { hideSpeedFloat(); next(); };
+      u.onend = () => { hideSpeedFloat(); setTimeout(next, 60); };
       u.onerror = () => { next(); };
       try { speechSynthesis.speak(u); } catch (e) {}
     };
@@ -1668,14 +1652,23 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     const sceneChips = `<button class="chip ${reviewScene === 'all' ? 'active' : ''}" data-rscene="all">🌐 全部场景</button>` +
       SCENES.map(s => `<button class="chip ${reviewScene === s.id ? 'active' : ''}" data-rscene="${s.id}">${s.emoji} ${s.name}</button>`).join('');
     if (!list.length) {
-      c.innerHTML = `<h2 class="section-title">🔁 复习</h2>
-        <div class="muted" style="margin:8px 0 10px">模式：${modeChips} <div style="margin-top:8px">${sceneChips}</div></div>
-        <div class="empty"><div class="emoji">✅</div><p>${reviewMode === 'due' ? '今天没有待复习的卡片，去学点新内容吧！' : '复习库还是空的，先去学几张卡片。'}</p><button class="btn primary" data-go="learn">去学卡片</button></div>`;
+      c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+        <h2 class="section-title" style="margin:0">🔁 复习</h2>
+        <button class="btn primary aiBtn">🤖 AI陪练</button>
+      </div>
+      <div class="muted" style="margin:8px 0 10px">模式：${modeChips}</div>
+      <div class="filter-group" id="reviewSceneFilter" style="display:none;margin-bottom:10px">${sceneChips}</div>
+      <button class="btn small ghost" id="reviewSceneToggle" style="margin-bottom:10px">⚙️ 筛选场景</button>
+      <div class="empty"><div class="emoji">✅</div><p>${reviewMode === 'due' ? '今天没有待复习的卡片，去学点新内容吧！' : '复习库还是空的，先去学几张卡片。'}</p><button class="btn primary" data-go="learn">去学卡片</button></div>`;
       return;
     }
-    c.innerHTML = `<h2 class="section-title">🔁 复习控制台（${list.length} 张 · 越不熟越靠前）</h2>
-      <div class="muted" style="margin:8px 0 10px">${modeChips}<div style="margin-top:8px">${sceneChips}</div></div>
-      <div class="muted" style="margin-bottom:10px">点卡片里的「记得 / 模糊 / 忘了」记录掌握程度，系统据此调整下次出现频率；也可点「📌 提前排练」随时把某张卡加入今日复习。</div>
+    c.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+        <h2 class="section-title" style="margin:0">🔁 复习（${list.length}）</h2>
+        <button class="btn primary aiBtn">🤖 AI陪练</button>
+      </div>
+      <div class="muted" style="margin:8px 0 10px">${modeChips}</div>
+      <div class="filter-group" id="reviewSceneFilter" style="display:none;margin-bottom:10px">${sceneChips}</div>
+      <button class="btn small ghost" id="reviewSceneToggle" style="margin-bottom:10px">⚙️ 筛选场景</button>
       <div class="card-grid">${list.map(d => cardHtml(getCard(d.id), 'review')).join('')}</div>`;
   }
   function brushUp(cardId) {
@@ -1884,10 +1877,12 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
   function openRecorder(slot, card) {
     closeRecorder();
     const target = card.sentence.replace(/\[\[|\]\]/g, '');
+    const srSupported = !!SR;
     slot.innerHTML = `<div class="recorder">
+      <div style="font-size:15px;font-weight:700;margin-bottom:8px">🎯 ${escapeHtml(target)}</div>
       <div class="wave-wrap">
-        <div class="wave-box"><div class="cap">🎯 原声参考波形</div><canvas class="wave" id="refWave"></canvas></div>
-        <div class="wave-box"><div class="cap">🎙️ 我的录音波形</div><canvas class="wave" id="myWave"></canvas></div>
+        <div class="wave-box"><div class="cap">原声参考</div><canvas class="wave" id="refWave"></canvas></div>
+        <div class="wave-box"><div class="cap">我的录音</div><canvas class="wave" id="myWave"></canvas></div>
       </div>
       <div class="rec-controls">
         <span class="rec-dot" id="recDot"></span>
@@ -1896,9 +1891,19 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
         <span class="accuracy-ring" id="accRing"></span>
       </div>
       <div class="rec-result" id="recResult"></div>
+      <div class="manual-compare" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+        <div class="muted" style="font-size:12px;margin-bottom:6px">💡 ${srSupported ? '如果录音不方便，也可以手动输入你读的内容：' : '当前浏览器不支持自动语音识别，请手动输入你读的内容：'}</div>
+        <textarea id="manualTranscript" rows="2" placeholder="输入你读出的英文句子..." style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:14px;resize:vertical"></textarea>
+        <button class="btn small" id="manualCompare" style="margin-top:6px">📝 对比</button>
+      </div>
     </div>`;
     drawWave($('#refWave', slot), pseudoWave(target), '#9fb4d8');
     drawWave($('#myWave', slot), new Array(60).fill(0), '#ff9e80');
+    $('#manualCompare', slot).onclick = () => {
+      const t = $('#manualTranscript', slot).value.trim();
+      if (!t) { toast('请先输入你读的内容'); return; }
+      onDone(t);
+    };
 
     const mySamples = [];
     let mediaRecorder, analyser, rafId, audioCtx, source, recData = [], recognizing = false, recog = null;
@@ -2253,6 +2258,14 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       if (rmode) { reviewMode = rmode.dataset.rmode; viewReview(); state.ui.reviewMode = reviewMode; save(); return; }
       const rscene = e.target.closest('[data-rscene]');
       if (rscene) { reviewScene = rscene.dataset.rscene; viewReview(); state.ui.reviewScene = reviewScene; save(); return; }
+      const aiBtn = e.target.closest('.aiBtn');
+      if (aiBtn) { openAI(); return; }
+      const reviewSceneToggle = e.target.closest('#reviewSceneToggle');
+      if (reviewSceneToggle) {
+        const rf = $('#reviewSceneFilter');
+        if (rf) rf.style.display = rf.style.display === 'none' ? 'flex' : 'none';
+        return;
+      }
       const go = e.target.closest('[data-go]');
       if (go) { switchView(go.dataset.go); return; }
       const solve = e.target.closest('[data-solve]');
@@ -2358,7 +2371,6 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     if (searchInput) searchInput.value = currentFilter.q || '';
     bindEvents();
     switchView(state.ui.view || 'learn');
-    $('#streakDays').textContent = state.stats.streak;
     if (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length) {
       setTimeout(generateDaily, 300);
     }
