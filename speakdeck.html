@@ -1195,18 +1195,16 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       audio.onended = () => { hideTtsLoading(); cleanup(); if (opts.onend) opts.onend(); };
       audio.onerror = () => { attempt(i + 1); };
       audio.load();
-      setTimeout(() => {
-        audio.play().catch(err => {
-          if (err && err.name === 'NotAllowedError') {
-            cleanup(); hideTtsLoading();
-            toast('🔇 请先点击页面任意位置激活音频');
-            beepFallback();
-            if (opts.onerror) opts.onerror();
-          } else {
-            attempt(i + 1);
-          }
-        });
-      }, 60);
+      audio.play().catch(err => {
+        if (err && err.name === 'NotAllowedError') {
+          cleanup(); hideTtsLoading();
+          toast('🔇 请先点击页面任意位置激活音频');
+          beepFallback();
+          if (opts.onerror) opts.onerror();
+        } else {
+          attempt(i + 1);
+        }
+      });
     }
 
     attempt(0);
@@ -1241,10 +1239,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       return;
     }
 
-    if (speechSynthesis.paused) {
-      try { speechSynthesis.resume(); } catch (e) {}
-    }
-
+    if (speechSynthesis.paused) { try { speechSynthesis.resume(); } catch (e) {} }
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US';
@@ -1256,29 +1251,34 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
 
     const el = opts.el;
     if (el) el.classList.add('speaking');
-    u.onend = () => { if (el) el.classList.remove('speaking'); hideSpeedFloat(); };
-    u.onerror = (e) => {
-      if (el) el.classList.remove('speaking'); hideSpeedFloat();
-      // 本地发音失败统一走在线兜底，避免整页静音（提示限频）
+
+    let started = false;
+    let fallbackTimer = null;
+    const clearFallback = () => { if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; } };
+    const doFallback = (msg) => {
+      clearFallback();
+      try { speechSynthesis.cancel(); } catch (e) {}
+      if (el) el.classList.remove('speaking');
+      hideSpeedFloat();
       const now = Date.now();
-      if (now - synthFailedAt > 3500) {
-        synthFailedAt = now;
-        if (e && (e.error === 'not-allowed' || e.error === 'audio-busy')) {
-          toast('🔇 请先点一下页面任意位置激活音频，再试');
-        } else {
-          toast('🔇 本地语音失败，已切换在线发音');
-        }
-      }
+      if (now - synthFailedAt > 3500) { synthFailedAt = now; toast(msg || '🔇 本地语音未响应，已切换在线发音'); }
       speakOnline(text, opts);
     };
 
-    setTimeout(() => {
-      try { speechSynthesis.speak(u); } catch (e) {
-        if (el) el.classList.remove('speaking');
-        toast('🔇 本地语音无法启动，尝试在线发音');
-        speakOnline(text, opts);
-      }
-    }, 60);
+    u.onstart = () => { started = true; clearFallback(); };
+    u.onend = () => { clearFallback(); if (el) el.classList.remove('speaking'); hideSpeedFloat(); };
+    u.onerror = (e) => {
+      const msg = (e && (e.error === 'not-allowed' || e.error === 'audio-busy'))
+        ? '🔇 请点一下页面任意位置激活音频，再试'
+        : '🔇 本地语音失败，已切换在线发音';
+      doFallback(msg);
+    };
+
+    fallbackTimer = setTimeout(() => {
+      if (!started) doFallback('🔇 本地语音未响应，已切换在线发音');
+    }, 1800);
+
+    try { speechSynthesis.speak(u); } catch (e) { doFallback('🔇 本地语音无法启动，尝试在线发音'); }
   }
 
   function speakSequence(texts, opts = {}) {
@@ -1302,18 +1302,29 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     if (speechSynthesis.paused) { try { speechSynthesis.resume(); } catch (e) {} }
     speechSynthesis.cancel();
     let i = 0; let seqErrored = false;
+    let sentTimer = null;
+    const clearSentTimer = () => { if (sentTimer) { clearTimeout(sentTimer); sentTimer = null; } };
+    const doFallback = () => {
+      clearSentTimer(); seqErrored = true;
+      try { speechSynthesis.cancel(); } catch (e) {}
+      hideSpeedFloat();
+      speakSequenceOnline(texts, opts);
+    };
     const next = () => {
-      if (i >= texts.length) return;
+      if (i >= texts.length) { hideSpeedFloat(); return; }
       const u = new SpeechSynthesisUtterance(texts[i++]);
       u.lang = 'en-US'; u.rate = opts.rate || 0.95; u.pitch = opts.pitch || 1;
       u.volume = 1;
       const v = pickVoice(); if (v) u.voice = v;
       if (state.settings.speakSpeed === 'slow') u.rate = 0.6;
-      u.onend = () => { hideSpeedFloat(); setTimeout(next, 60); };
-      u.onerror = () => { if (!seqErrored) { seqErrored = true; speakSequenceOnline(texts, opts); return; } next(); };
-      try { speechSynthesis.speak(u); } catch (e) {}
+      let started = false;
+      u.onstart = () => { started = true; clearSentTimer(); };
+      u.onend = () => { clearSentTimer(); setTimeout(next, 60); };
+      u.onerror = () => { if (!seqErrored) doFallback(); else next(); };
+      sentTimer = setTimeout(() => { if (!started && !seqErrored) doFallback(); }, 1800);
+      try { speechSynthesis.speak(u); } catch (e) { if (!seqErrored) doFallback(); }
     };
-    setTimeout(next, 60);
+    next();
   }
 
     /* --------------- 逐词跟读 --------------- */
@@ -1659,7 +1670,8 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
         <button class="btn primary aiBtn">🤖 AI陪练</button>
       </div>
       <div class="rf-row" style="margin:8px 0 6px">${modeChips}</div>
-      <div class="rf-row filter-group" id="reviewSceneFilter" style="margin-bottom:10px">${sceneChips}</div>
+      <div class="filter-group" id="reviewSceneFilter" style="display:none;margin-bottom:10px">${sceneChips}</div>
+      <button class="btn small ghost" id="reviewSceneToggle" style="margin-bottom:10px">⚙️ 筛选场景</button>
 
       <div class="empty"><div class="emoji">✅</div><p>${reviewMode === 'due' ? '今天没有待复习的卡片，去学点新内容吧！' : '复习库还是空的，先去学几张卡片。'}</p><button class="btn primary" data-go="learn">去学卡片</button></div>`;
       return;
@@ -1669,7 +1681,8 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
         <button class="btn primary aiBtn">🤖 AI陪练</button>
       </div>
       <div class="rf-row" style="margin:8px 0 6px">${modeChips}</div>
-      <div class="rf-row filter-group" id="reviewSceneFilter" style="margin-bottom:10px">${sceneChips}</div>
+      <div class="filter-group" id="reviewSceneFilter" style="display:none;margin-bottom:10px">${sceneChips}</div>
+      <button class="btn small ghost" id="reviewSceneToggle" style="margin-bottom:10px">⚙️ 筛选场景</button>
 
       <div class="card-grid">${list.map(d => cardHtml(getCard(d.id), 'review')).join('')}</div>`;
   }
