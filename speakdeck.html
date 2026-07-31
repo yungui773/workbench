@@ -125,6 +125,7 @@ p { margin: .3em 0; }
 .filter-collapse.open { display: flex; }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.rf-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .chip {
   border: 1px solid var(--line); background: #fff; cursor: pointer;
   padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
@@ -1099,7 +1100,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
   /* ---------------- 语音合成 ---------------- */
   let voices = [];
   let synthReady = false;
-  let synthFailed = false;
+  let synthFailedAt = 0;
   let onlineTtsWarned = false;
 
   function loadVoices() {
@@ -1219,6 +1220,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
 
 
   function speak(text, opts = {}) {
+    if (!text) { beepFallback(); return; }
     showSpeedFloat();
     const speed = state.settings.speakSpeed || 'normal';
     if (speed === 'word' && text.trim().split(/\s+/).length > 1) {
@@ -1257,17 +1259,17 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     u.onend = () => { if (el) el.classList.remove('speaking'); hideSpeedFloat(); };
     u.onerror = (e) => {
       if (el) el.classList.remove('speaking'); hideSpeedFloat();
-      if (!synthFailed) {
-        synthFailed = true;
-        if (e.error === 'not-allowed' || e.error === 'audio-busy') {
-          toast('🔇 请先点击页面任意位置激活音频，再试');
+      // 本地发音失败统一走在线兜底，避免整页静音（提示限频）
+      const now = Date.now();
+      if (now - synthFailedAt > 3500) {
+        synthFailedAt = now;
+        if (e && (e.error === 'not-allowed' || e.error === 'audio-busy')) {
+          toast('🔇 请先点一下页面任意位置激活音频，再试');
         } else {
-          toast('🔇 本地语音失败，尝试在线发音');
-          speakOnline(text, opts);
-          return;
+          toast('🔇 本地语音失败，已切换在线发音');
         }
       }
-      beepFallback();
+      speakOnline(text, opts);
     };
 
     setTimeout(() => {
@@ -1299,7 +1301,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     }
     if (speechSynthesis.paused) { try { speechSynthesis.resume(); } catch (e) {} }
     speechSynthesis.cancel();
-    let i = 0;
+    let i = 0; let seqErrored = false;
     const next = () => {
       if (i >= texts.length) return;
       const u = new SpeechSynthesisUtterance(texts[i++]);
@@ -1308,7 +1310,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       const v = pickVoice(); if (v) u.voice = v;
       if (state.settings.speakSpeed === 'slow') u.rate = 0.6;
       u.onend = () => { hideSpeedFloat(); setTimeout(next, 60); };
-      u.onerror = () => { next(); };
+      u.onerror = () => { if (!seqErrored) { seqErrored = true; speakSequenceOnline(texts, opts); return; } next(); };
       try { speechSynthesis.speak(u); } catch (e) {}
     };
     setTimeout(next, 60);
@@ -1656,9 +1658,9 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
         <h2 class="section-title" style="margin:0">🔁 复习</h2>
         <button class="btn primary aiBtn">🤖 AI陪练</button>
       </div>
-      <div class="muted" style="margin:8px 0 10px">模式：${modeChips}</div>
-      <div class="filter-group" id="reviewSceneFilter" style="display:none;margin-bottom:10px">${sceneChips}</div>
-      <button class="btn small ghost" id="reviewSceneToggle" style="margin-bottom:10px">⚙️ 筛选场景</button>
+      <div class="rf-row" style="margin:8px 0 6px">${modeChips}</div>
+      <div class="rf-row filter-group" id="reviewSceneFilter" style="margin-bottom:10px">${sceneChips}</div>
+
       <div class="empty"><div class="emoji">✅</div><p>${reviewMode === 'due' ? '今天没有待复习的卡片，去学点新内容吧！' : '复习库还是空的，先去学几张卡片。'}</p><button class="btn primary" data-go="learn">去学卡片</button></div>`;
       return;
     }
@@ -1666,9 +1668,9 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
         <h2 class="section-title" style="margin:0">🔁 复习（${list.length}）</h2>
         <button class="btn primary aiBtn">🤖 AI陪练</button>
       </div>
-      <div class="muted" style="margin:8px 0 10px">${modeChips}</div>
-      <div class="filter-group" id="reviewSceneFilter" style="display:none;margin-bottom:10px">${sceneChips}</div>
-      <button class="btn small ghost" id="reviewSceneToggle" style="margin-bottom:10px">⚙️ 筛选场景</button>
+      <div class="rf-row" style="margin:8px 0 6px">${modeChips}</div>
+      <div class="rf-row filter-group" id="reviewSceneFilter" style="margin-bottom:10px">${sceneChips}</div>
+
       <div class="card-grid">${list.map(d => cardHtml(getCard(d.id), 'review')).join('')}</div>`;
   }
   function brushUp(cardId) {
@@ -2370,8 +2372,11 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     const searchInput = $('#searchInput');
     if (searchInput) searchInput.value = currentFilter.q || '';
     bindEvents();
-    switchView(state.ui.view || 'learn');
-    if (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length) {
+    // 恢复上次所在的页面与筛选，刷新不乱跳
+    const restoredView = state.ui.view || 'learn';
+    witchView(restoredView);
+    // 仅当停留在“学卡片 + 今日推荐”且当天尚未生成时，才自动补生成，避免刷新时强跳回学卡片
+    if (restoredView === 'learn' && dailyOnly && (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length)) {
       setTimeout(generateDaily, 300);
     }
     if (window.speechSynthesis) {
@@ -2379,7 +2384,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
         try {
           if (speechSynthesis.paused) speechSynthesis.resume();
           const u = new SpeechSynthesisUtterance('Hi');
-          u.volume = 0; u.rate = 2;
+          u.volume = 0.05; u.rate = 2;
           speechSynthesis.speak(u);
         } catch (e) {}
       };
