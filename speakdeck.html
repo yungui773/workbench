@@ -1225,60 +1225,8 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       speakWordByWord(text, opts);
       return;
     }
-    if (!('speechSynthesis' in window)) {
-      if (!onlineTtsWarned) { onlineTtsWarned = true; toast('🌐 当前浏览器未开放本地语音，已切换为在线发音'); }
-      speakOnline(text, opts);
-      return;
-    }
-    try { voices = speechSynthesis.getVoices(); } catch (e) {}
-    if (voices.length > 0) synthReady = true;
-
-    if (voices.length === 0) {
-      if (!onlineTtsWarned) { onlineTtsWarned = true; toast('🌐 未检测到本地语音包，已切换为在线发音'); }
-      speakOnline(text, opts);
-      return;
-    }
-
-    if (speechSynthesis.paused) { try { speechSynthesis.resume(); } catch (e) {} }
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = opts.rate || 0.95;
-    u.pitch = opts.pitch || 1;
-    u.volume = 1;
-    const v = pickVoice(); if (v) u.voice = v;
-    if (state.settings.speakSpeed === 'slow') u.rate = 0.6;
-
-    const el = opts.el;
-    if (el) el.classList.add('speaking');
-
-    let started = false;
-    let fallbackTimer = null;
-    const clearFallback = () => { if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; } };
-    const doFallback = (msg) => {
-      clearFallback();
-      try { speechSynthesis.cancel(); } catch (e) {}
-      if (el) el.classList.remove('speaking');
-      hideSpeedFloat();
-      const now = Date.now();
-      if (now - synthFailedAt > 3500) { synthFailedAt = now; toast(msg || '🔇 本地语音未响应，已切换在线发音'); }
-      speakOnline(text, opts);
-    };
-
-    u.onstart = () => { started = true; clearFallback(); };
-    u.onend = () => { clearFallback(); if (el) el.classList.remove('speaking'); hideSpeedFloat(); };
-    u.onerror = (e) => {
-      const msg = (e && (e.error === 'not-allowed' || e.error === 'audio-busy'))
-        ? '🔇 请点一下页面任意位置激活音频，再试'
-        : '🔇 本地语音失败，已切换在线发音';
-      doFallback(msg);
-    };
-
-    fallbackTimer = setTimeout(() => {
-      if (!started) doFallback('🔇 本地语音未响应，已切换在线发音');
-    }, 1800);
-
-    try { speechSynthesis.speak(u); } catch (e) { doFallback('🔇 本地语音无法启动，尝试在线发音'); }
+    // 全程使用在线语音，移动端最稳定（本地语音常被静默吞掉）
+    speakOnline(text, opts);
   }
 
   function speakSequence(texts, opts = {}) {
@@ -1288,43 +1236,8 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
       speakWordByWord(texts.join(' '), opts);
       return;
     }
-    if (!('speechSynthesis' in window)) {
-      if (!onlineTtsWarned) { onlineTtsWarned = true; toast('🌐 当前浏览器未开放本地语音，已切换为在线发音'); }
-      speakSequenceOnline(texts, opts);
-      return;
-    }
-    try { voices = speechSynthesis.getVoices(); } catch (e) {}
-    if (voices.length === 0) {
-      if (!onlineTtsWarned) { onlineTtsWarned = true; toast('🌐 未检测到本地语音包，已切换为在线发音'); }
-      speakSequenceOnline(texts, opts);
-      return;
-    }
-    if (speechSynthesis.paused) { try { speechSynthesis.resume(); } catch (e) {} }
-    speechSynthesis.cancel();
-    let i = 0; let seqErrored = false;
-    let sentTimer = null;
-    const clearSentTimer = () => { if (sentTimer) { clearTimeout(sentTimer); sentTimer = null; } };
-    const doFallback = () => {
-      clearSentTimer(); seqErrored = true;
-      try { speechSynthesis.cancel(); } catch (e) {}
-      hideSpeedFloat();
-      speakSequenceOnline(texts, opts);
-    };
-    const next = () => {
-      if (i >= texts.length) { hideSpeedFloat(); return; }
-      const u = new SpeechSynthesisUtterance(texts[i++]);
-      u.lang = 'en-US'; u.rate = opts.rate || 0.95; u.pitch = opts.pitch || 1;
-      u.volume = 1;
-      const v = pickVoice(); if (v) u.voice = v;
-      if (state.settings.speakSpeed === 'slow') u.rate = 0.6;
-      let started = false;
-      u.onstart = () => { started = true; clearSentTimer(); };
-      u.onend = () => { clearSentTimer(); setTimeout(next, 60); };
-      u.onerror = () => { if (!seqErrored) doFallback(); else next(); };
-      sentTimer = setTimeout(() => { if (!started && !seqErrored) doFallback(); }, 1800);
-      try { speechSynthesis.speak(u); } catch (e) { if (!seqErrored) doFallback(); }
-    };
-    next();
+    // 全程使用在线语音
+    speakSequenceOnline(texts, opts);
   }
 
     /* --------------- 逐词跟读 --------------- */
@@ -2359,17 +2272,9 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     const banner = $('#audioBanner');
     const bannerText = $('#audioBannerText');
     if (banner && bannerText) {
-      if (!('speechSynthesis' in window)) {
-        banner.hidden = false;
-        banner.className = 'audio-banner';
-        bannerText.textContent = '🌐 当前浏览器未开放本地语音，已自动启用在线发音（需联网）。如需离线使用，建议用 Chrome 或 Edge 浏览器。';
-      } else if (window.location.protocol === 'file:') {
-        banner.hidden = false;
-        banner.className = 'audio-banner';
-        bannerText.textContent = '💡 检测到本地文件打开模式。建议用 Live Server 或本地服务器打开以获得最佳语音体验。发音仍可尝试使用。';
-      } else {
-        banner.hidden = true;
-      }
+      banner.hidden = false;
+      banner.className = 'audio-banner';
+      bannerText.textContent = '🌐 英语发音使用在线语音（需联网）。若播放无声音，请检查网络后重试。';
       const bc = $('#audioBannerClose');
       if (bc) bc.onclick = () => { banner.hidden = true; };
     }
@@ -2391,18 +2296,6 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     // 仅当停留在“学卡片 + 今日推荐”且当天尚未生成时，才自动补生成，避免刷新时强跳回学卡片
     if (restoredView === 'learn' && dailyOnly && (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length)) {
       setTimeout(generateDaily, 300);
-    }
-    if (window.speechSynthesis) {
-      const warmup = () => {
-        try {
-          if (speechSynthesis.paused) speechSynthesis.resume();
-          const u = new SpeechSynthesisUtterance('Hi');
-          u.volume = 0.05; u.rate = 2;
-          speechSynthesis.speak(u);
-        } catch (e) {}
-      };
-      const once = () => { warmup(); document.removeEventListener('click', once); };
-      document.addEventListener('click', once, { once: true });
     }
   }
   document.addEventListener('DOMContentLoaded', init);
