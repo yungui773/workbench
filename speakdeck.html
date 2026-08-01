@@ -1511,7 +1511,7 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     }
     const c = $('#content');
     if (!list.length) {
-      c.innerHTML = `<div class="empty"><div class="emoji">🗂️</div><p>没有符合条件的卡片。</p>${dailyOnly ? '<button class="btn primary" id="genDaily">生成今日卡片</button>' : ''}</div>`;
+      c.innerHTML = `<div class="empty"><div class="emoji">🗂️</div><p>没有符合条件的卡片。</p><button class="btn primary" id="genDaily">生成今日卡片</button></div>`;
       const g = $('#genDaily'); if (g) g.onclick = generateDaily;
       return;
     }
@@ -2292,11 +2292,9 @@ window.SpeakDeckData = { SCENES, LEVELS, IPA, CARDS };
     bindEvents();
     // 恢复上次所在的页面与筛选，刷新不乱跳
     const restoredView = state.ui.view || 'learn';
-    // 学卡片页面：若今日推荐为空，先回到全部卡片，避免一进来空白
-    if (restoredView === 'learn' && dailyOnly && (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length)) {
-      dailyOnly = false;
-      state.ui.dailyOnly = false;
-    }
+    // 首屏一律显示全部卡片，避免“今日推荐”卡片缺失导致白屏；如需今日推荐请点击“生成今日卡片”
+    dailyOnly = false;
+    state.ui.dailyOnly = false;
     witchView(restoredView);
     // 仅当用户明确在“今日推荐”模式且当天尚未生成时，才自动补生成
     if (restoredView === 'learn' && dailyOnly && (!state.dailyShown[todayStr()] || !state.dailyShown[todayStr()].length)) {
